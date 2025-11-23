@@ -2,6 +2,7 @@
 
 Async Python interface for Kermi heat pumps via Modbus (TCP/RTU).
 
+[![CI](https://github.com/jr42/py-kermi-xcenter/workflows/CI/badge.svg)](https://github.com/jr42/py-kermi-xcenter/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
