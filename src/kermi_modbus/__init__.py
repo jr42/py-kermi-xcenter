@@ -27,7 +27,7 @@ from .exceptions import (
     RegisterWriteError,
     ValidationError,
 )
-from .models.base import KermiDevice
+from .models import HeatPump, KermiDevice, StorageSystem, UniversalModule
 from .types import (
     BooleanValue,
     EnergyMode,
@@ -44,8 +44,11 @@ __all__ = [
     "__version__",
     # Client
     "KermiModbusClient",
-    # Base device
+    # Devices
     "KermiDevice",
+    "HeatPump",
+    "StorageSystem",
+    "UniversalModule",
     # Exceptions
     "KermiModbusError",
     "ConnectionError",
