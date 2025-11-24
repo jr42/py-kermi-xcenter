@@ -1,17 +1,17 @@
 """Tests for HeatPump device."""
 
 import pytest
-from unittest.mock import AsyncMock
 
 from kermi_modbus import HeatPump, HeatPumpStatus
-from kermi_modbus.exceptions import ReadOnlyRegisterError, ValidationError
 
 
 class TestHeatPumpTemperatures:
     """Test heat pump temperature readings."""
 
     @pytest.mark.asyncio
-    async def test_get_outdoor_temperature(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_outdoor_temperature(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading outdoor temperature."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([235])
 
@@ -19,9 +19,7 @@ class TestHeatPumpTemperatures:
         temp = await heat_pump.get_outdoor_temperature()
 
         assert temp == 23.5
-        mock_tcp_client.read_holding_registers.assert_called_once_with(
-            address=3, count=1, slave=40
-        )
+        mock_tcp_client.read_holding_registers.assert_called_once_with(address=3, count=1, device_id=40)
 
     @pytest.mark.asyncio
     async def test_get_supply_temp(self, kermi_client, mock_tcp_client, mock_modbus_response):
@@ -34,7 +32,9 @@ class TestHeatPumpTemperatures:
         assert temp == 52.5
 
     @pytest.mark.asyncio
-    async def test_get_negative_temperature(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_negative_temperature(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading negative temperature."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([-50])
 
@@ -57,7 +57,7 @@ class TestHeatPumpCOP:
 
         assert cop == 4.25
         mock_tcp_client.read_holding_registers.assert_called_once_with(
-            address=100, count=1, slave=40
+            address=100, count=1, device_id=40
         )
 
     @pytest.mark.asyncio
@@ -84,7 +84,7 @@ class TestHeatPumpPower:
 
         assert power == 12.50
         mock_tcp_client.read_holding_registers.assert_called_once_with(
-            address=104, count=1, slave=40
+            address=104, count=1, device_id=40
         )
 
     @pytest.mark.asyncio
@@ -102,7 +102,9 @@ class TestHeatPumpStatus:
     """Test heat pump status readings."""
 
     @pytest.mark.asyncio
-    async def test_get_heat_pump_status_heating(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_heat_pump_status_heating(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading heat pump status as HEATING."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([4])
 
@@ -113,7 +115,9 @@ class TestHeatPumpStatus:
         assert status.name == "HEATING"
 
     @pytest.mark.asyncio
-    async def test_get_heat_pump_status_standby(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_heat_pump_status_standby(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading heat pump status as STANDBY."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([0])
 
@@ -137,7 +141,9 @@ class TestHeatPumpPVModulation:
     """Test heat pump PV modulation control."""
 
     @pytest.mark.asyncio
-    async def test_get_pv_modulation_power(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_pv_modulation_power(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading PV modulation power."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([2000])
 
@@ -147,19 +153,21 @@ class TestHeatPumpPVModulation:
         assert power == 2000
 
     @pytest.mark.asyncio
-    async def test_set_pv_modulation_power(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_set_pv_modulation_power(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test setting PV modulation power."""
         mock_tcp_client.write_register.return_value = mock_modbus_response()
 
         heat_pump = HeatPump(kermi_client)
         await heat_pump.set_pv_modulation_power(2500)
 
-        mock_tcp_client.write_register.assert_called_once_with(
-            address=301, value=2500, slave=40
-        )
+        mock_tcp_client.write_register.assert_called_once_with(address=301, value=2500, device_id=40)
 
     @pytest.mark.asyncio
-    async def test_set_pv_modulation_setpoint_heating(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_set_pv_modulation_setpoint_heating(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test setting PV modulation heating setpoint."""
         mock_tcp_client.write_register.return_value = mock_modbus_response()
 
@@ -167,16 +175,16 @@ class TestHeatPumpPVModulation:
         await heat_pump.set_pv_modulation_setpoint_heating(23.5)
 
         # Should convert 23.5°C to raw value 235
-        mock_tcp_client.write_register.assert_called_once_with(
-            address=302, value=235, slave=40
-        )
+        mock_tcp_client.write_register.assert_called_once_with(address=302, value=235, device_id=40)
 
 
 class TestHeatPumpOperatingHours:
     """Test heat pump operating hours."""
 
     @pytest.mark.asyncio
-    async def test_get_operating_hours_compressor(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_operating_hours_compressor(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading compressor operating hours."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([5432])
 
@@ -185,7 +193,7 @@ class TestHeatPumpOperatingHours:
 
         assert hours == 5432
         mock_tcp_client.read_holding_registers.assert_called_once_with(
-            address=152, count=1, slave=40
+            address=152, count=1, device_id=40
         )
 
 

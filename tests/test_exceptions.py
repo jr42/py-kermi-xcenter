@@ -3,12 +3,12 @@
 import pytest
 
 from kermi_modbus.exceptions import (
-    KermiModbusError,
     ConnectionError,
+    KermiModbusError,
+    ReadOnlyRegisterError,
     RegisterReadError,
     RegisterWriteError,
     ValidationError,
-    ReadOnlyRegisterError,
 )
 from kermi_modbus.models.base import KermiDevice
 from kermi_modbus.registers import HEAT_PUMP_REGISTERS
@@ -80,7 +80,7 @@ class TestValidationInDeviceClass:
         # but let's test with a register that has limits
         # For this test, we'll use a mock register with limits
         from kermi_modbus.registers import RegisterDef
-        from kermi_modbus.utils.conversions import temperature_to_raw, raw_to_temperature
+        from kermi_modbus.utils.conversions import raw_to_temperature, temperature_to_raw
 
         test_register = RegisterDef(
             address=999,
@@ -104,7 +104,7 @@ class TestValidationInDeviceClass:
         device = KermiDevice(kermi_client, unit_id=40, registers=HEAT_PUMP_REGISTERS)
 
         from kermi_modbus.registers import RegisterDef
-        from kermi_modbus.utils.conversions import temperature_to_raw, raw_to_temperature
+        from kermi_modbus.utils.conversions import raw_to_temperature, temperature_to_raw
 
         test_register = RegisterDef(
             address=999,

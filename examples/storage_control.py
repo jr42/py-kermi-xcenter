@@ -33,8 +33,12 @@ async def main() -> None:
         status = await heating_storage.get_heating_circuit_status()
         energy_mode = await heating_storage.get_heating_circuit_energy_mode()
 
-        print(f"Storage Temperature:      {heating_actual:.1f}°C (setpoint: {heating_setpoint:.1f}°C)")
-        print(f"Circuit Temperature:      {circuit_actual:.1f}°C (setpoint: {circuit_setpoint:.1f}°C)")
+        print(
+            f"Storage Temperature:      {heating_actual:.1f}°C (setpoint: {heating_setpoint:.1f}°C)"
+        )
+        print(
+            f"Circuit Temperature:      {circuit_actual:.1f}°C (setpoint: {circuit_setpoint:.1f}°C)"
+        )
         print(f"Circuit Status:           {status.name}")
         print(f"Energy Mode:              {energy_mode.name}")
 

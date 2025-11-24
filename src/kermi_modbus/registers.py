@@ -9,8 +9,8 @@ All register names are in English for code clarity, with German references
 preserved in docstrings and the 'german_name' field.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
 from .types import RegisterAttribute
 from .utils.conversions import (

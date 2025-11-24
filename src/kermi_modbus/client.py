@@ -8,7 +8,7 @@ import asyncio
 import logging
 from typing import Self
 
-from pymodbus.client import AsyncModbusTcpClient, AsyncModbusSerialClient
+from pymodbus.client import AsyncModbusSerialClient, AsyncModbusTcpClient
 from pymodbus.exceptions import ModbusException
 
 from .exceptions import ConnectionError, RegisterReadError, RegisterWriteError
@@ -154,11 +154,13 @@ class KermiModbusClient:
 
         for attempt in range(self._retries):
             try:
-                logger.debug(f"Reading register {address} (unit {unit_id}, count {count}), attempt {attempt + 1}")
+                logger.debug(
+                    f"Reading register {address} (unit {unit_id}, count {count}), attempt {attempt + 1}"
+                )
                 response = await self._client.read_holding_registers(
                     address=address,
                     count=count,
-                    slave=unit_id,
+                    device_id=unit_id,
                 )
 
                 if response.isError():
@@ -172,12 +174,12 @@ class KermiModbusClient:
                 else:
                     raise RegisterReadError(address, "Invalid response format")
 
-            except ModbusException as e:
+            except Exception as e:
                 if attempt < self._retries - 1:
                     logger.warning(f"Read failed (attempt {attempt + 1}): {e}")
                     await asyncio.sleep(0.1 * (attempt + 1))  # Exponential backoff
                     continue
-                raise RegisterReadError(address, str(e)) from e
+                raise RegisterReadError(address, f"Max retries exceeded: {e}") from e
 
         raise RegisterReadError(address, "Max retries exceeded")
 
@@ -203,11 +205,13 @@ class KermiModbusClient:
 
         for attempt in range(self._retries):
             try:
-                logger.debug(f"Writing {value} to register {address} (unit {unit_id}), attempt {attempt + 1}")
+                logger.debug(
+                    f"Writing {value} to register {address} (unit {unit_id}), attempt {attempt + 1}"
+                )
                 response = await self._client.write_register(
                     address=address,
                     value=value,
-                    slave=unit_id,
+                    device_id=unit_id,
                 )
 
                 if response.isError():
@@ -216,12 +220,12 @@ class KermiModbusClient:
                 logger.debug(f"Successfully wrote {value} to register {address}")
                 return
 
-            except ModbusException as e:
+            except Exception as e:
                 if attempt < self._retries - 1:
                     logger.warning(f"Write failed (attempt {attempt + 1}): {e}")
                     await asyncio.sleep(0.1 * (attempt + 1))
                     continue
-                raise RegisterWriteError(address, value, str(e)) from e
+                raise RegisterWriteError(address, value, f"Max retries exceeded: {e}") from e
 
         raise RegisterWriteError(address, value, "Max retries exceeded")
 
@@ -247,24 +251,30 @@ class KermiModbusClient:
 
         for attempt in range(self._retries):
             try:
-                logger.debug(f"Writing {len(values)} registers starting at {address} (unit {unit_id})")
+                logger.debug(
+                    f"Writing {len(values)} registers starting at {address} (unit {unit_id})"
+                )
                 response = await self._client.write_registers(
                     address=address,
                     values=values,
-                    slave=unit_id,
+                    device_id=unit_id,
                 )
 
                 if response.isError():
-                    raise RegisterWriteError(address, values[0] if values else 0, f"Modbus error: {response}")
+                    raise RegisterWriteError(
+                        address, values[0] if values else 0, f"Modbus error: {response}"
+                    )
 
                 logger.debug(f"Successfully wrote {len(values)} registers")
                 return
 
-            except ModbusException as e:
+            except Exception as e:
                 if attempt < self._retries - 1:
                     logger.warning(f"Write failed (attempt {attempt + 1}): {e}")
                     await asyncio.sleep(0.1 * (attempt + 1))
                     continue
-                raise RegisterWriteError(address, values[0] if values else 0, str(e)) from e
+                raise RegisterWriteError(
+                    address, values[0] if values else 0, f"Max retries exceeded: {e}"
+                ) from e
 
         raise RegisterWriteError(address, values[0] if values else 0, "Max retries exceeded")

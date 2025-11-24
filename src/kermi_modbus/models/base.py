@@ -6,7 +6,7 @@ from typing import Any
 from ..client import KermiModbusClient
 from ..exceptions import ReadOnlyRegisterError, ValidationError
 from ..registers import RegisterDef
-from ..types import BooleanValue, UnitId
+from ..types import UnitId
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +106,7 @@ class KermiDevice:
         elif register.data_type == "enum":
             raw_value = int(value)
         elif register.inverse_converter:
-            raw_value = register.inverse_converter(value)  # type: ignore
+            raw_value = register.inverse_converter(value)
         else:
             raw_value = int(value)
 
@@ -132,7 +132,7 @@ class KermiDevice:
             This method reads each register individually, which may be slow.
             Consider using specific getter methods for production use.
         """
-        values = {}
+        values: dict[str, Any] = {}
         for name, register in self.registers.items():
             if "R" in register.attribute:
                 try:

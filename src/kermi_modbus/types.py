@@ -5,7 +5,7 @@ English names are used for code clarity, with German equivalents noted
 in docstrings.
 """
 
-from enum import IntEnum, StrEnum
+from enum import IntEnum
 from typing import Literal
 
 # Type aliases for clarity

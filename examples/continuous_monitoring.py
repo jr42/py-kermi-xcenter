@@ -7,7 +7,7 @@ with periodic updates every 30 seconds.
 import asyncio
 from datetime import datetime
 
-from kermi_modbus import KermiModbusClient, HeatPump
+from kermi_modbus import HeatPump, KermiModbusClient
 
 
 async def monitor_heat_pump(heat_pump: HeatPump, interval: int = 30) -> None:

@@ -10,7 +10,9 @@ class TestUniversalModuleHeatingCircuit:
     """Test universal module heating circuit."""
 
     @pytest.mark.asyncio
-    async def test_get_heating_circuit_status(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_heating_circuit_status(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading heating circuit status."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([2])
 
@@ -19,11 +21,13 @@ class TestUniversalModuleHeatingCircuit:
 
         assert status == HeatingCircuitStatus.COOLING
         mock_tcp_client.read_holding_registers.assert_called_once_with(
-            address=150, count=1, slave=30
+            address=150, count=1, device_id=30
         )
 
     @pytest.mark.asyncio
-    async def test_get_heating_circuit_actual(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_heating_circuit_actual(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading actual temperature."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([215])
 
@@ -33,7 +37,9 @@ class TestUniversalModuleHeatingCircuit:
         assert temp == 21.5
 
     @pytest.mark.asyncio
-    async def test_get_heating_circuit_setpoint(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_heating_circuit_setpoint(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading setpoint temperature."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([225])
 
@@ -74,9 +80,7 @@ class TestUniversalModuleOperatingModes:
         universal = UniversalModule(kermi_client)
         await universal.set_operating_type(OperatingType.AUTO)
 
-        mock_tcp_client.write_register.assert_called_once_with(
-            address=154, value=0, slave=30
-        )
+        mock_tcp_client.write_register.assert_called_once_with(address=154, value=0, device_id=30)
 
 
 class TestUniversalModuleEnergyMode:
@@ -100,28 +104,28 @@ class TestUniversalModuleEnergyMode:
         universal = UniversalModule(kermi_client)
         await universal.set_energy_mode(EnergyMode.ECO)
 
-        mock_tcp_client.write_register.assert_called_once_with(
-            address=155, value=1, slave=30
-        )
+        mock_tcp_client.write_register.assert_called_once_with(address=155, value=1, device_id=30)
 
     @pytest.mark.asyncio
-    async def test_set_energy_mode_comfort(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_set_energy_mode_comfort(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test setting energy mode to COMFORT."""
         mock_tcp_client.write_register.return_value = mock_modbus_response()
 
         universal = UniversalModule(kermi_client)
         await universal.set_energy_mode(EnergyMode.COMFORT)
 
-        mock_tcp_client.write_register.assert_called_once_with(
-            address=155, value=3, slave=30
-        )
+        mock_tcp_client.write_register.assert_called_once_with(address=155, value=3, device_id=30)
 
 
 class TestUniversalModuleHeatingCurve:
     """Test heating curve control."""
 
     @pytest.mark.asyncio
-    async def test_get_heating_curve_parallel_offset(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_heating_curve_parallel_offset(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading heating curve offset."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([15])
 
@@ -131,16 +135,16 @@ class TestUniversalModuleHeatingCurve:
         assert offset == 1.5
 
     @pytest.mark.asyncio
-    async def test_set_heating_curve_parallel_offset(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_set_heating_curve_parallel_offset(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test setting heating curve offset."""
         mock_tcp_client.write_register.return_value = mock_modbus_response()
 
         universal = UniversalModule(kermi_client)
         await universal.set_heating_curve_parallel_offset(-2.0)
 
-        mock_tcp_client.write_register.assert_called_once_with(
-            address=156, value=-20, slave=30
-        )
+        mock_tcp_client.write_register.assert_called_once_with(address=156, value=-20, device_id=30)
 
 
 class TestUniversalModuleTemperatureSensors:
@@ -156,7 +160,7 @@ class TestUniversalModuleTemperatureSensors:
 
         assert temp == 23.5
         mock_tcp_client.read_holding_registers.assert_called_once_with(
-            address=250, count=1, slave=30
+            address=250, count=1, device_id=30
         )
 
     @pytest.mark.asyncio
@@ -181,12 +185,12 @@ class TestUniversalModuleSeasonThresholds:
         universal = UniversalModule(kermi_client)
         await universal.set_cooling_mode_on(24.0)
 
-        mock_tcp_client.write_register.assert_called_once_with(
-            address=160, value=240, slave=30
-        )
+        mock_tcp_client.write_register.assert_called_once_with(address=160, value=240, device_id=30)
 
     @pytest.mark.asyncio
-    async def test_get_summer_mode_active(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_get_summer_mode_active(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading summer mode active status."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([1])
 

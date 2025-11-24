@@ -6,7 +6,7 @@ including temperatures, COP, power, and status.
 
 import asyncio
 
-from kermi_modbus import HeatPumpStatus, KermiModbusClient, HeatPump
+from kermi_modbus import HeatPump, KermiModbusClient
 
 
 async def main() -> None:

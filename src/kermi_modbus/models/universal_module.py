@@ -49,7 +49,7 @@ class UniversalModule(KermiDevice):
             HeatingCircuitStatus enum value
         """
         value = await self._read_register(self.registers["heating_circuit_status"])
-        return HeatingCircuitStatus(value)
+        return HeatingCircuitStatus(int(value))
 
     async def get_heating_circuit_actual(self) -> float:
         """Get heating circuit actual temperature in °C.
@@ -57,7 +57,7 @@ class UniversalModule(KermiDevice):
         Register: 151
         German: Isttemperatur Heizkreis
         """
-        return await self._read_register(self.registers["heating_circuit_actual"])  # type: ignore
+        return await self._read_register(self.registers["heating_circuit_actual"])
 
     async def get_heating_circuit_setpoint(self) -> float:
         """Get heating circuit setpoint temperature in °C.
@@ -66,7 +66,7 @@ class UniversalModule(KermiDevice):
         German: Solltemperatur Heizkreis
         Range: 0-85°C
         """
-        return await self._read_register(self.registers["heating_circuit_setpoint"])  # type: ignore
+        return await self._read_register(self.registers["heating_circuit_setpoint"])
 
     async def get_operating_mode(self) -> OperatingMode:
         """Get operating mode (current actual mode).
@@ -78,7 +78,7 @@ class UniversalModule(KermiDevice):
             OperatingMode enum value (OFF, HEATING, COOLING)
         """
         value = await self._read_register(self.registers["operating_mode"])
-        return OperatingMode(value)
+        return OperatingMode(int(value))
 
     async def get_operating_type(self) -> OperatingType:
         """Get operating type (user selection).
@@ -90,7 +90,7 @@ class UniversalModule(KermiDevice):
             OperatingType enum value (AUTO, OFF)
         """
         value = await self._read_register(self.registers["operating_type"])
-        return OperatingType(value)
+        return OperatingType(int(value))
 
     async def set_operating_type(self, mode: OperatingType) -> None:
         """Set operating type.
@@ -113,7 +113,7 @@ class UniversalModule(KermiDevice):
             EnergyMode enum value
         """
         value = await self._read_register(self.registers["energy_mode"])
-        return EnergyMode(value)
+        return EnergyMode(int(value))
 
     async def set_energy_mode(self, mode: EnergyMode) -> None:
         """Set energy mode.
@@ -133,7 +133,7 @@ class UniversalModule(KermiDevice):
         German: Parallelverschiebung Kurve
         Range: -5 to +5K
         """
-        return await self._read_register(self.registers["heating_curve_parallel_offset"])  # type: ignore
+        return await self._read_register(self.registers["heating_curve_parallel_offset"])
 
     async def set_heating_curve_parallel_offset(self, offset: float) -> None:
         """Set heating curve parallel offset in K.
@@ -156,7 +156,7 @@ class UniversalModule(KermiDevice):
             SeasonSelection enum value
         """
         value = await self._read_register(self.registers["season_selection_manual"])
-        return SeasonSelection(value)
+        return SeasonSelection(int(value))
 
     async def set_season_selection_manual(self, selection: SeasonSelection) -> None:
         """Set manual season selection.
@@ -178,7 +178,7 @@ class UniversalModule(KermiDevice):
         German: Sommerbetrieb (Heizen Aus)
         Range: 0-50°C, Default: 18°C
         """
-        return await self._read_register(self.registers["summer_mode_heating_off"])  # type: ignore
+        return await self._read_register(self.registers["summer_mode_heating_off"])
 
     async def set_summer_mode_heating_off(self, temp: float) -> None:
         """Set summer mode (heating off) threshold in °C.
@@ -197,7 +197,7 @@ class UniversalModule(KermiDevice):
         German: Winterbetrieb (Heizen Ein)
         Range: 0-50°C, Default: 16°C
         """
-        return await self._read_register(self.registers["winter_mode_heating_on"])  # type: ignore
+        return await self._read_register(self.registers["winter_mode_heating_on"])
 
     async def set_winter_mode_heating_on(self, temp: float) -> None:
         """Set winter mode (heating on) threshold in °C.
@@ -216,7 +216,7 @@ class UniversalModule(KermiDevice):
         German: Kühlbetrieb Ein
         Range: 0-50°C, Default: 22°C
         """
-        return await self._read_register(self.registers["cooling_mode_on"])  # type: ignore
+        return await self._read_register(self.registers["cooling_mode_on"])
 
     async def set_cooling_mode_on(self, temp: float) -> None:
         """Set cooling mode on threshold in °C.
@@ -235,7 +235,7 @@ class UniversalModule(KermiDevice):
         German: Kühlbetrieb Aus
         Range: 0-50°C, Default: 20°C
         """
-        return await self._read_register(self.registers["cooling_mode_off"])  # type: ignore
+        return await self._read_register(self.registers["cooling_mode_off"])
 
     async def set_cooling_mode_off(self, temp: float) -> None:
         """Set cooling mode off threshold in °C.
@@ -253,7 +253,7 @@ class UniversalModule(KermiDevice):
         Register: 162
         German: Sommerbetrieb aktiv
         """
-        return await self._read_register(self.registers["summer_mode_active"])  # type: ignore
+        return bool(await self._read_register(self.registers["summer_mode_active"]))
 
     async def get_cooling_mode_active(self) -> bool:
         """Get cooling mode active status.
@@ -261,7 +261,7 @@ class UniversalModule(KermiDevice):
         Register: 163
         German: Kühlbetrieb aktiv
         """
-        return await self._read_register(self.registers["cooling_mode_active"])  # type: ignore
+        return bool(await self._read_register(self.registers["cooling_mode_active"]))
 
     # Temperature sensors
 
@@ -271,7 +271,7 @@ class UniversalModule(KermiDevice):
         Register: 250
         German: T1 (X9) Temperaturfühler
         """
-        return await self._read_register(self.registers["t1_temperature"])  # type: ignore
+        return await self._read_register(self.registers["t1_temperature"])
 
     async def get_t2_temperature(self) -> float:
         """Get T2 (X10) temperature sensor reading in °C.
@@ -279,7 +279,7 @@ class UniversalModule(KermiDevice):
         Register: 251
         German: T2 (X10) Temperaturfühler
         """
-        return await self._read_register(self.registers["t2_temperature"])  # type: ignore
+        return await self._read_register(self.registers["t2_temperature"])
 
     async def get_t3_temperature(self) -> float:
         """Get T3 (X11) temperature sensor reading in °C.
@@ -287,7 +287,7 @@ class UniversalModule(KermiDevice):
         Register: 252
         German: T3 (X11) Temperaturfühler
         """
-        return await self._read_register(self.registers["t3_temperature"])  # type: ignore
+        return await self._read_register(self.registers["t3_temperature"])
 
     async def get_t4_temperature(self) -> float:
         """Get T4 (X12) temperature sensor reading in °C.
@@ -295,7 +295,7 @@ class UniversalModule(KermiDevice):
         Register: 253
         German: T4 (X12) Temperaturfühler
         """
-        return await self._read_register(self.registers["t4_temperature"])  # type: ignore
+        return await self._read_register(self.registers["t4_temperature"])
 
     # Operating hours
 
@@ -305,4 +305,4 @@ class UniversalModule(KermiDevice):
         Register: 300
         German: Heizkreispumpe Laufzeit
         """
-        return await self._read_register(self.registers["operating_hours_circuit_pump"])  # type: ignore
+        return int(await self._read_register(self.registers["operating_hours_circuit_pump"]))

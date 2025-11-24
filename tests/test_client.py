@@ -1,7 +1,6 @@
 """Tests for KermiModbusClient."""
 
 import pytest
-from unittest.mock import AsyncMock
 
 from kermi_modbus import KermiModbusClient
 from kermi_modbus.exceptions import ConnectionError, RegisterReadError, RegisterWriteError
@@ -46,8 +45,7 @@ class TestClientConnection:
     async def test_context_manager(self, mock_tcp_client, monkeypatch):
         """Test async context manager usage."""
         monkeypatch.setattr(
-            "kermi_modbus.client.AsyncModbusTcpClient",
-            lambda **kwargs: mock_tcp_client
+            "kermi_modbus.client.AsyncModbusTcpClient", lambda **_kwargs: mock_tcp_client
         )
 
         client = KermiModbusClient(host="192.168.1.100")
@@ -69,28 +67,24 @@ class TestClientReadOperations:
         value = await kermi_client.read_register(address=1, unit_id=40)
 
         assert value == 235
-        mock_tcp_client.read_holding_registers.assert_called_once_with(
-            address=1, count=1, slave=40
-        )
+        mock_tcp_client.read_holding_registers.assert_called_once_with(address=1, count=1, device_id=40)
 
     @pytest.mark.asyncio
-    async def test_read_multiple_registers(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_read_multiple_registers(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test reading multiple registers."""
         mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([235, 315, 425])
 
         values = await kermi_client.read_register(address=1, unit_id=40, count=3)
 
         assert values == [235, 315, 425]
-        mock_tcp_client.read_holding_registers.assert_called_once_with(
-            address=1, count=3, slave=40
-        )
+        mock_tcp_client.read_holding_registers.assert_called_once_with(address=1, count=3, device_id=40)
 
     @pytest.mark.asyncio
     async def test_read_register_error(self, kermi_client, mock_tcp_client, mock_modbus_response):
         """Test reading register with error response."""
-        mock_tcp_client.read_holding_registers.return_value = mock_modbus_response(
-            is_error=True
-        )
+        mock_tcp_client.read_holding_registers.return_value = mock_modbus_response(is_error=True)
 
         with pytest.raises(RegisterReadError):
             await kermi_client.read_register(address=1, unit_id=40)
@@ -114,31 +108,27 @@ class TestClientWriteOperations:
 
         await kermi_client.write_register(address=301, value=2000, unit_id=40)
 
-        mock_tcp_client.write_register.assert_called_once_with(
-            address=301, value=2000, slave=40
-        )
+        mock_tcp_client.write_register.assert_called_once_with(address=301, value=2000, device_id=40)
 
     @pytest.mark.asyncio
     async def test_write_register_error(self, kermi_client, mock_tcp_client, mock_modbus_response):
         """Test writing register with error response."""
-        mock_tcp_client.write_register.return_value = mock_modbus_response(
-            is_error=True
-        )
+        mock_tcp_client.write_register.return_value = mock_modbus_response(is_error=True)
 
         with pytest.raises(RegisterWriteError):
             await kermi_client.write_register(address=301, value=2000, unit_id=40)
 
     @pytest.mark.asyncio
-    async def test_write_multiple_registers(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_write_multiple_registers(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test writing multiple registers."""
         mock_tcp_client.write_registers.return_value = mock_modbus_response()
 
-        await kermi_client.write_registers(
-            address=300, values=[2000, 235, 520], unit_id=40
-        )
+        await kermi_client.write_registers(address=300, values=[2000, 235, 520], unit_id=40)
 
         mock_tcp_client.write_registers.assert_called_once_with(
-            address=300, values=[2000, 235, 520], slave=40
+            address=300, values=[2000, 235, 520], device_id=40
         )
 
     @pytest.mark.asyncio
@@ -154,7 +144,9 @@ class TestClientRetryLogic:
     """Test client retry logic."""
 
     @pytest.mark.asyncio
-    async def test_read_retry_on_exception(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_read_retry_on_exception(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test that read retries on exception."""
         # First call fails, second succeeds
         mock_tcp_client.read_holding_registers.side_effect = [
@@ -168,7 +160,9 @@ class TestClientRetryLogic:
         assert mock_tcp_client.read_holding_registers.call_count == 2
 
     @pytest.mark.asyncio
-    async def test_write_retry_on_exception(self, kermi_client, mock_tcp_client, mock_modbus_response):
+    async def test_write_retry_on_exception(
+        self, kermi_client, mock_tcp_client, mock_modbus_response
+    ):
         """Test that write retries on exception."""
         # First call fails, second succeeds
         mock_tcp_client.write_register.side_effect = [

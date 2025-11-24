@@ -20,7 +20,11 @@ class RegisterReadError(KermiModbusError):
             message: Optional error message
         """
         self.address = address
-        super().__init__(f"Failed to read register {address}: {message}" if message else f"Failed to read register {address}")
+        super().__init__(
+            f"Failed to read register {address}: {message}"
+            if message
+            else f"Failed to read register {address}"
+        )
 
 
 class RegisterWriteError(KermiModbusError):
@@ -56,7 +60,11 @@ class ValidationError(KermiModbusError):
         """
         self.field = field
         self.value = value
-        super().__init__(f"Validation failed for {field}={value}: {message}" if message else f"Validation failed for {field}={value}")
+        super().__init__(
+            f"Validation failed for {field}={value}: {message}"
+            if message
+            else f"Validation failed for {field}={value}"
+        )
 
 
 class ReadOnlyRegisterError(KermiModbusError):
