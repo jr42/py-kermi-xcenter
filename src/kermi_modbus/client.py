@@ -9,7 +9,6 @@ import logging
 from typing import Self
 
 from pymodbus.client import AsyncModbusSerialClient, AsyncModbusTcpClient
-from pymodbus.exceptions import ModbusException
 
 from .exceptions import ConnectionError, RegisterReadError, RegisterWriteError
 from .types import ModbusAddress, RegisterValue, UnitId

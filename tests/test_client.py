@@ -1,5 +1,7 @@
 """Tests for KermiModbusClient."""
 
+import sys
+
 import pytest
 
 from kermi_modbus import KermiModbusClient
@@ -16,6 +18,7 @@ class TestClientConnection:
         assert client._timeout == 5.0
         assert not client._use_rtu
 
+    @pytest.mark.skipif("serial" not in sys.modules, reason="pyserial not installed")
     def test_rtu_client_creation(self):
         """Test RTU client is created with correct parameters."""
         client = KermiModbusClient(
