@@ -55,6 +55,29 @@ pytest --cov=kermi_modbus --cov-report=html
 pytest -v
 ```
 
+## Pre-Commit Checklist
+
+**ALWAYS run these checks before committing:**
+
+```bash
+# 1. Format code with black
+black src/ tests/ examples/
+
+# 2. Run ruff linter
+ruff check src/ tests/ examples/
+
+# 3. Run type checker
+mypy src/
+
+# 4. Run test suite
+pytest
+
+# Quick one-liner to run all checks:
+black src/ tests/ examples/ && ruff check src/ tests/ examples/ && mypy src/ && pytest
+```
+
+All checks must pass before committing. The CI pipeline will fail if any of these checks fail.
+
 ## Commit Message Convention
 
 This project uses **semantic commit messages** following the [Conventional Commits](https://www.conventionalcommits.org/) specification.

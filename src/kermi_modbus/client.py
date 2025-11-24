@@ -166,9 +166,9 @@ class KermiModbusClient:
                     raise RegisterReadError(address, f"Modbus error: {response}")
 
                 if hasattr(response, "registers"):
-                    values = response.registers
+                    values: list[int] = response.registers
                     if count == 1:
-                        return values[0]
+                        return int(values[0])
                     return values
                 else:
                     raise RegisterReadError(address, "Invalid response format")
