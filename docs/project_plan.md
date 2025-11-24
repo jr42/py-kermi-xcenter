@@ -203,7 +203,7 @@ description = "Python interface for Kermi heat pumps via Modbus"
 authors = [{name = "Your Name", email = "your.email@example.com"}]
 readme = "README.md"
 requires-python = ">=3.9"
-license = {text = "MIT"}
+license = {text = "Apache-2.0"}
 dependencies = [
     "pymodbus>=3.6.0",
 ]
