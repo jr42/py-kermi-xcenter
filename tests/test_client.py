@@ -4,8 +4,8 @@ import sys
 
 import pytest
 
-from kermi_modbus import KermiModbusClient
-from kermi_modbus.exceptions import ConnectionError, RegisterReadError, RegisterWriteError
+from kermi_xcenter import KermiModbusClient
+from kermi_xcenter.exceptions import ConnectionError, RegisterReadError, RegisterWriteError
 
 
 class TestClientConnection:
@@ -48,7 +48,7 @@ class TestClientConnection:
     async def test_context_manager(self, mock_tcp_client, monkeypatch):
         """Test async context manager usage."""
         monkeypatch.setattr(
-            "kermi_modbus.client.AsyncModbusTcpClient", lambda **_kwargs: mock_tcp_client
+            "kermi_xcenter.client.AsyncModbusTcpClient", lambda **_kwargs: mock_tcp_client
         )
 
         client = KermiModbusClient(host="192.168.1.100")

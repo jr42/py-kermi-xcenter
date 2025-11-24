@@ -36,7 +36,7 @@ pip install -e ".[dev]"
 
 ```python
 import asyncio
-from kermi_modbus import KermiModbusClient, HeatPump
+from kermi_xcenter import KermiModbusClient, HeatPump
 
 async def main():
     # Create client
@@ -84,7 +84,7 @@ Main heat pump control with access to:
 - PV modulation controls
 
 ```python
-from kermi_modbus import HeatPump
+from kermi_xcenter import HeatPump
 
 heat_pump = HeatPump(client, unit_id=40)
 cop = await heat_pump.get_cop_total()
@@ -103,7 +103,7 @@ Heating storage (50) and hot water storage (51):
 - Operating hours
 
 ```python
-from kermi_modbus import StorageSystem, EnergyMode
+from kermi_xcenter import StorageSystem, EnergyMode
 
 heating_storage = StorageSystem(client, unit_id=50)
 hot_water_storage = StorageSystem(client, unit_id=51)
@@ -123,7 +123,7 @@ Additional heating circuits with:
 - Operating hours
 
 ```python
-from kermi_modbus import UniversalModule, EnergyMode
+from kermi_xcenter import UniversalModule, EnergyMode
 
 universal = UniversalModule(client, unit_id=30)
 await universal.set_energy_mode(EnergyMode.COMFORT)
@@ -173,7 +173,7 @@ python examples/basic_monitoring.py
 The library provides type-safe enums for all status and mode values:
 
 ```python
-from kermi_modbus import (
+from kermi_xcenter import (
     HeatPumpStatus,           # STANDBY, ALARM, HOT_WATER, COOLING, HEATING, etc.
     HeatingCircuitStatus,     # OFF, HEATING, COOLING, DEW_POINT, etc.
     OperatingMode,            # OFF, HEATING, COOLING
@@ -200,7 +200,7 @@ All register values are automatically converted to engineering units:
 The library provides custom exceptions for different error scenarios:
 
 ```python
-from kermi_modbus import (
+from kermi_xcenter import (
     KermiModbusError,          # Base exception
     ConnectionError,           # Connection failed
     RegisterReadError,         # Read operation failed
@@ -238,7 +238,7 @@ Complete register specification: [`docs/modbus_specification.md`](docs/modbus_sp
 ## Architecture
 
 ```
-kermi_modbus/
+kermi_xcenter/
 ├── client.py              # Async Modbus client (TCP/RTU)
 ├── registers.py           # Register definitions for all modules
 ├── types.py               # Enums and type aliases
@@ -288,7 +288,7 @@ mypy src/
 pytest
 
 # With coverage
-pytest --cov=kermi_modbus --cov-report=html
+pytest --cov=kermi_xcenter --cov-report=html
 ```
 
 ## Modbus Function Codes

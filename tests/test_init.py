@@ -6,13 +6,13 @@ class TestPackageImports:
 
     def test_import_client(self):
         """Test importing client."""
-        from kermi_modbus import KermiModbusClient
+        from kermi_xcenter import KermiModbusClient
 
         assert KermiModbusClient is not None
 
     def test_import_devices(self):
         """Test importing device classes."""
-        from kermi_modbus import HeatPump, KermiDevice, StorageSystem, UniversalModule
+        from kermi_xcenter import HeatPump, KermiDevice, StorageSystem, UniversalModule
 
         assert HeatPump is not None
         assert StorageSystem is not None
@@ -21,7 +21,7 @@ class TestPackageImports:
 
     def test_import_exceptions(self):
         """Test importing exceptions."""
-        from kermi_modbus import (
+        from kermi_xcenter import (
             ConnectionError,
             KermiModbusError,
         )
@@ -31,7 +31,7 @@ class TestPackageImports:
 
     def test_import_enums(self):
         """Test importing enum types."""
-        from kermi_modbus import (
+        from kermi_xcenter import (
             EnergyMode,
             HeatingCircuitStatus,
             HeatPumpStatus,
@@ -43,13 +43,13 @@ class TestPackageImports:
 
     def test_version_defined(self):
         """Test that version is defined."""
-        from kermi_modbus import __version__
+        from kermi_xcenter import __version__
 
-        assert __version__ == "0.1.0"
+        assert __version__ == "0.0.1"
 
     def test_all_exports(self):
         """Test that __all__ contains all expected exports."""
-        from kermi_modbus import __all__
+        from kermi_xcenter import __all__
 
         expected = {
             "__version__",

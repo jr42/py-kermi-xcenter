@@ -4,7 +4,7 @@ This package provides an async interface to control and monitor Kermi heat pump
 systems through the Modbus protocol (TCP or RTU).
 
 Basic usage:
-    >>> from kermi_modbus import KermiModbusClient, HeatPump
+    >>> from kermi_xcenter import KermiModbusClient, HeatPump
     >>>
     >>> async def main():
     ...     client = KermiModbusClient(host="192.168.1.100")
@@ -16,7 +16,7 @@ Basic usage:
     ...         print(f"Outdoor: {temp}°C, COP: {cop}")
 """
 
-__version__ = "0.1.0"
+__version__ = "0.0.1"
 
 from .client import KermiModbusClient
 from .exceptions import (

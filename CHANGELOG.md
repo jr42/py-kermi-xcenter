@@ -64,10 +64,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive error handling
 - Connection retry logic
 
-## [0.1.0] - TBD
+## [0.0.1] - 2024-11-25
 
 ### Added
 - Initial release
 
-[Unreleased]: https://github.com/jr42/py-kermi-xcenter/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/jr42/py-kermi-xcenter/releases/tag/v0.1.0
+[Unreleased]: https://github.com/jr42/py-kermi-xcenter/compare/v0.0.1...HEAD
+[0.0.1]: https://github.com/jr42/py-kermi-xcenter/releases/tag/v0.0.1

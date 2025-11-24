@@ -2,7 +2,7 @@
 
 import pytest
 
-from kermi_modbus.exceptions import (
+from kermi_xcenter.exceptions import (
     ConnectionError,
     KermiModbusError,
     ReadOnlyRegisterError,
@@ -10,8 +10,8 @@ from kermi_modbus.exceptions import (
     RegisterWriteError,
     ValidationError,
 )
-from kermi_modbus.models.base import KermiDevice
-from kermi_modbus.registers import HEAT_PUMP_REGISTERS
+from kermi_xcenter.models.base import KermiDevice
+from kermi_xcenter.registers import HEAT_PUMP_REGISTERS
 
 
 class TestExceptionHierarchy:
@@ -79,8 +79,8 @@ class TestValidationInDeviceClass:
         # pv_modulation_setpoint_heating has no explicit min in our current setup,
         # but let's test with a register that has limits
         # For this test, we'll use a mock register with limits
-        from kermi_modbus.registers import RegisterDef
-        from kermi_modbus.utils.conversions import raw_to_temperature, temperature_to_raw
+        from kermi_xcenter.registers import RegisterDef
+        from kermi_xcenter.utils.conversions import raw_to_temperature, temperature_to_raw
 
         test_register = RegisterDef(
             address=999,
@@ -103,8 +103,8 @@ class TestValidationInDeviceClass:
         """Test that writing value above maximum raises error."""
         device = KermiDevice(kermi_client, unit_id=40, registers=HEAT_PUMP_REGISTERS)
 
-        from kermi_modbus.registers import RegisterDef
-        from kermi_modbus.utils.conversions import raw_to_temperature, temperature_to_raw
+        from kermi_xcenter.registers import RegisterDef
+        from kermi_xcenter.utils.conversions import raw_to_temperature, temperature_to_raw
 
         test_register = RegisterDef(
             address=999,

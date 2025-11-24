@@ -6,7 +6,7 @@ systems using the StorageSystem device class.
 
 import asyncio
 
-from kermi_modbus import (
+from kermi_xcenter import (
     EnergyMode,
     KermiModbusClient,
     SeasonSelection,

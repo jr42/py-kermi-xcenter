@@ -49,7 +49,7 @@ pytest tests/test_client.py::TestClientConnection
 pytest tests/test_client.py::TestClientConnection::test_tcp_client_creation
 
 # Run with coverage
-pytest --cov=kermi_modbus --cov-report=html
+pytest --cov=kermi_xcenter --cov-report=html
 
 # Run with verbose output
 pytest -v
@@ -147,32 +147,32 @@ to use modern async features and type hints.
 
 ### Layered Design
 
-1. **Client Layer** (`src/kermi_modbus/client.py`)
+1. **Client Layer** (`src/kermi_xcenter/client.py`)
    - `KermiModbusClient`: Async wrapper around pymodbus
    - Handles TCP and RTU connections
    - Provides retry logic with exponential backoff (default: 3 retries)
    - **Critical**: Uses `device_id` parameter (not `slave`) for pymodbus >=3.6.0
    - Context manager support for automatic connect/disconnect
 
-2. **Register Layer** (`src/kermi_modbus/registers.py`)
+2. **Register Layer** (`src/kermi_xcenter/registers.py`)
    - Centralized register definitions using `RegisterDef` dataclass
    - Three register maps: `HEAT_PUMP_REGISTERS`, `STORAGE_SYSTEM_REGISTERS`, `UNIVERSAL_MODULE_REGISTERS`
    - Each register defines: address, name, unit, attribute (R/R/W), data type, min/max, converters
    - Register names use English (German names preserved in docstrings)
 
-3. **Model Layer** (`src/kermi_modbus/models/`)
+3. **Model Layer** (`src/kermi_xcenter/models/`)
    - `base.py`: `KermiDevice` base class with common register read/write logic
    - `heat_pump.py`: `HeatPump` class (unit 40) - main heat pump control
    - `storage_system.py`: `StorageSystem` class (units 50/51) - heating and hot water storage
    - `universal_module.py`: `UniversalModule` class (unit 30) - additional heating circuits
    - All methods are async and follow pattern: `get_*()` for reads, `set_*()` for writes
 
-4. **Type Layer** (`src/kermi_modbus/types.py`)
+4. **Type Layer** (`src/kermi_xcenter/types.py`)
    - Type-safe enums for all status and mode values
    - `HeatPumpStatus`, `HeatingCircuitStatus`, `OperatingMode`, `EnergyMode`, etc.
    - All enums use `IntEnum` for Modbus compatibility
 
-5. **Utility Layer** (`src/kermi_modbus/utils/conversions.py`)
+5. **Utility Layer** (`src/kermi_xcenter/utils/conversions.py`)
    - Data conversion functions between raw Modbus values and engineering units
    - Temperatures: INT16 in 0.1°C units ↔ float in °C
    - Power: UINT16 in 0.01 kW units ↔ float in kW
@@ -270,7 +270,7 @@ ignore = ["E501", "B008"]
 "__init__.py" = ["F401"]  # Allow unused imports
 
 [tool.ruff.lint.isort]
-known-first-party = ["kermi_modbus"]
+known-first-party = ["kermi_xcenter"]
 ```
 
 ### MyPy

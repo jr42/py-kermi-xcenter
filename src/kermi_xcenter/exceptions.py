@@ -1,8 +1,8 @@
-"""Custom exceptions for kermi_modbus."""
+"""Custom exceptions for kermi_xcenter."""
 
 
 class KermiModbusError(Exception):
-    """Base exception for all kermi_modbus errors."""
+    """Base exception for all kermi_xcenter errors."""
 
 
 class ConnectionError(KermiModbusError):

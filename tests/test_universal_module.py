@@ -2,8 +2,8 @@
 
 import pytest
 
-from kermi_modbus import UniversalModule
-from kermi_modbus.types import EnergyMode, HeatingCircuitStatus, OperatingMode, OperatingType
+from kermi_xcenter import UniversalModule
+from kermi_xcenter.types import EnergyMode, HeatingCircuitStatus, OperatingMode, OperatingType
 
 
 class TestUniversalModuleHeatingCircuit:

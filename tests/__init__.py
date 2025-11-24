@@ -1,1 +1,1 @@
-"""Tests for kermi_modbus package."""
+"""Tests for kermi_xcenter package."""

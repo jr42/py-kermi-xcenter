@@ -87,7 +87,7 @@ pre-commit install
    mypy src/
 
    # Run tests
-   pytest -v --cov=kermi_modbus
+   pytest -v --cov=kermi_xcenter
    ```
 
 5. **Commit your changes**:
@@ -187,7 +187,7 @@ pytest
 pytest tests/test_heat_pump.py -v
 
 # Run with coverage
-pytest --cov=kermi_modbus --cov-report=html
+pytest --cov=kermi_xcenter --cov-report=html
 
 # Run specific test
 pytest tests/test_heat_pump.py::TestHeatPumpTemperatures::test_get_outdoor_temperature -v
@@ -213,7 +213,7 @@ pytest tests/test_heat_pump.py::TestHeatPumpTemperatures::test_get_outdoor_tempe
 
 Releases are automated through GitHub Actions:
 
-1. **Update version** in `pyproject.toml` and `src/kermi_modbus/__init__.py`
+1. **Update version** in `pyproject.toml` and `src/kermi_xcenter/__init__.py`
 2. **Update CHANGELOG.md** with release notes
 3. **Create a git tag**: `git tag v0.1.0`
 4. **Push tag**: `git push origin v0.1.0`

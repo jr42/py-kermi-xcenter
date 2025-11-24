@@ -2,7 +2,7 @@
 
 import pytest
 
-from kermi_modbus import HeatPump, HeatPumpStatus
+from kermi_xcenter import HeatPump, HeatPumpStatus
 
 
 class TestHeatPumpTemperatures:

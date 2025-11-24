@@ -9,7 +9,7 @@ Create a clean, best-practice Python module for interfacing with Kermi heat pump
 ```
 py-kermi-xcenter/
 ├── src/
-│   └── kermi_modbus/
+│   └── kermi_xcenter/
 │       ├── __init__.py
 │       ├── client.py              # Main Modbus client wrapper
 │       ├── exceptions.py          # Custom exceptions
@@ -197,7 +197,7 @@ requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kermi-modbus"
+name = "kermi-xcenter"
 version = "0.1.0"
 description = "Python interface for Kermi heat pumps via Modbus"
 authors = [{name = "Your Name", email = "your.email@example.com"}]
@@ -264,7 +264,7 @@ python_functions = "test_*"
 ### Custom Exceptions
 ```python
 class KermiModbusError(Exception):
-    """Base exception for kermi_modbus"""
+    """Base exception for kermi_xcenter"""
 
 class ConnectionError(KermiModbusError):
     """Connection to Modbus device failed"""
@@ -305,7 +305,7 @@ class ValidationError(KermiModbusError):
 ## Example Usage
 
 ```python
-from kermi_modbus import KermiModbusClient, Waermepumpe, Speichersystem
+from kermi_xcenter import KermiModbusClient, Waermepumpe, Speichersystem
 
 # Connect to heat pump via Modbus TCP
 client = KermiModbusClient(host="192.168.1.100", port=502)

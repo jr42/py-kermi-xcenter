@@ -1,4 +1,4 @@
-"""Utility modules for kermi_modbus."""
+"""Utility modules for kermi_xcenter."""
 
 from .conversions import (
     raw_to_cop,

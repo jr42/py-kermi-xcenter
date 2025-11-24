@@ -2,8 +2,8 @@
 
 import pytest
 
-from kermi_modbus import StorageSystem
-from kermi_modbus.types import (
+from kermi_xcenter import StorageSystem
+from kermi_xcenter.types import (
     EnergyMode,
     HeatingCircuitStatus,
     OperatingMode,

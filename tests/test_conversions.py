@@ -2,7 +2,7 @@
 
 import pytest
 
-from kermi_modbus.utils.conversions import (
+from kermi_xcenter.utils.conversions import (
     raw_to_cop,
     raw_to_flow_rate,
     raw_to_power,

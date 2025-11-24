@@ -3,10 +3,10 @@ requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "kermi-modbus"
-version = "0.1.0"
+name = "kermi-xcenter"
+version = "0.0.1"
 description = "Async Python interface for Kermi heat pumps via Modbus"
-authors = [{name = "Your Name", email = "your.email@example.com"}]
+authors = [{name = "Jeremias Reith", email = "jr42@users.noreply.github.com"}]
 readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "Apache-2.0"}
@@ -35,18 +35,21 @@ dev = [
     "mypy>=1.7",
     "pre-commit>=3.5",
 ]
+rtu = [
+    "pyserial>=3.5",
+]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/kermi-modbus"
-Documentation = "https://github.com/yourusername/kermi-modbus#readme"
-Repository = "https://github.com/yourusername/kermi-modbus"
-Issues = "https://github.com/yourusername/kermi-modbus/issues"
+Homepage = "https://github.com/jr42/py-kermi-xcenter"
+Documentation = "https://github.com/jr42/py-kermi-xcenter#readme"
+Repository = "https://github.com/jr42/py-kermi-xcenter"
+Issues = "https://github.com/jr42/py-kermi-xcenter/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-kermi_modbus = ["py.typed"]
+kermi_xcenter = ["py.typed"]
 
 [tool.ruff]
 line-length = 100
@@ -73,7 +76,7 @@ ignore = [
 "__init__.py" = ["F401"]  # Allow unused imports in __init__.py
 
 [tool.ruff.lint.isort]
-known-first-party = ["kermi_modbus"]
+known-first-party = ["kermi_xcenter"]
 
 [tool.black]
 line-length = 100
@@ -103,7 +106,7 @@ asyncio_mode = "auto"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=kermi_modbus",
+    "--cov=kermi_xcenter",
     "--cov-report=term-missing",
     "--cov-report=html",
 ]

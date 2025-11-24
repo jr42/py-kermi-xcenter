@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from kermi_modbus import KermiModbusClient
+from kermi_xcenter import KermiModbusClient
 
 
 @pytest.fixture
@@ -34,7 +34,7 @@ async def kermi_client(mock_tcp_client, monkeypatch):
     """Create a KermiModbusClient with mocked pymodbus client."""
     # Mock the AsyncModbusTcpClient
     monkeypatch.setattr(
-        "kermi_modbus.client.AsyncModbusTcpClient", lambda **_kwargs: mock_tcp_client
+        "kermi_xcenter.client.AsyncModbusTcpClient", lambda **_kwargs: mock_tcp_client
     )
 
     client = KermiModbusClient(host="192.168.1.100", port=502)
