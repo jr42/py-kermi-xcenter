@@ -70,7 +70,9 @@ class TestClientReadOperations:
         value = await kermi_client.read_register(address=1, unit_id=40)
 
         assert value == 235
-        mock_tcp_client.read_holding_registers.assert_called_once_with(address=1, count=1, device_id=40)
+        mock_tcp_client.read_holding_registers.assert_called_once_with(
+            address=1, count=1, device_id=40
+        )
 
     @pytest.mark.asyncio
     async def test_read_multiple_registers(
@@ -82,7 +84,9 @@ class TestClientReadOperations:
         values = await kermi_client.read_register(address=1, unit_id=40, count=3)
 
         assert values == [235, 315, 425]
-        mock_tcp_client.read_holding_registers.assert_called_once_with(address=1, count=3, device_id=40)
+        mock_tcp_client.read_holding_registers.assert_called_once_with(
+            address=1, count=3, device_id=40
+        )
 
     @pytest.mark.asyncio
     async def test_read_register_error(self, kermi_client, mock_tcp_client, mock_modbus_response):
@@ -111,7 +115,9 @@ class TestClientWriteOperations:
 
         await kermi_client.write_register(address=301, value=2000, unit_id=40)
 
-        mock_tcp_client.write_register.assert_called_once_with(address=301, value=2000, device_id=40)
+        mock_tcp_client.write_register.assert_called_once_with(
+            address=301, value=2000, device_id=40
+        )
 
     @pytest.mark.asyncio
     async def test_write_register_error(self, kermi_client, mock_tcp_client, mock_modbus_response):

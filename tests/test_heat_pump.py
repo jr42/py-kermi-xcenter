@@ -19,7 +19,9 @@ class TestHeatPumpTemperatures:
         temp = await heat_pump.get_outdoor_temperature()
 
         assert temp == 23.5
-        mock_tcp_client.read_holding_registers.assert_called_once_with(address=3, count=1, device_id=40)
+        mock_tcp_client.read_holding_registers.assert_called_once_with(
+            address=3, count=1, device_id=40
+        )
 
     @pytest.mark.asyncio
     async def test_get_supply_temp(self, kermi_client, mock_tcp_client, mock_modbus_response):
@@ -162,7 +164,9 @@ class TestHeatPumpPVModulation:
         heat_pump = HeatPump(kermi_client)
         await heat_pump.set_pv_modulation_power(2500)
 
-        mock_tcp_client.write_register.assert_called_once_with(address=301, value=2500, device_id=40)
+        mock_tcp_client.write_register.assert_called_once_with(
+            address=301, value=2500, device_id=40
+        )
 
     @pytest.mark.asyncio
     async def test_set_pv_modulation_setpoint_heating(

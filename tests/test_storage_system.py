@@ -23,7 +23,9 @@ class TestStorageSystemTemperatures:
         temp = await storage.get_heating_actual()
 
         assert temp == 45.5
-        mock_tcp_client.read_holding_registers.assert_called_once_with(address=1, count=1, device_id=50)
+        mock_tcp_client.read_holding_registers.assert_called_once_with(
+            address=1, count=1, device_id=50
+        )
 
     @pytest.mark.asyncio
     async def test_get_hot_water_actual(self, kermi_client, mock_tcp_client, mock_modbus_response):
