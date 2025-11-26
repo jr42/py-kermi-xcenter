@@ -4,7 +4,14 @@ import logging
 from typing import Any
 
 from ..client import KermiModbusClient
-from ..exceptions import ReadOnlyRegisterError, ValidationError
+from ..exceptions import (
+    ConnectionError,
+    DataConversionError,
+    ReadOnlyRegisterError,
+    RegisterReadError,
+    RegisterUnsupportedError,
+    ValidationError,
+)
 from ..registers import RegisterDef
 from ..types import UnitId
 
@@ -51,24 +58,44 @@ class KermiDevice:
 
         Raises:
             RegisterReadError: If read fails
+            RegisterUnsupportedError: If register not available on this device
+            DataConversionError: If conversion to engineering units fails
         """
-        raw_value = await self.client.read_register(
-            address=register.address,
-            unit_id=self.unit_id,
-        )
+        try:
+            raw_value = await self.client.read_register(
+                address=register.address,
+                unit_id=self.unit_id,
+            )
+        except Exception as e:
+            # Check if this is a protocol-level error indicating unsupported register
+            if self._is_unsupported_register_error(e):
+                raise RegisterUnsupportedError(
+                    register.name, "Device returned malformed response"
+                ) from e
+            # Re-raise other errors as-is
+            raise
 
         # Handle type conversion
         if isinstance(raw_value, list):
+            if not raw_value:
+                # Empty response - treat as unsupported
+                raise RegisterUnsupportedError(register.name, "Device returned empty response")
             raw_value = raw_value[0]
 
-        if register.data_type == "bool":
-            return bool(raw_value)
-        elif register.data_type == "enum":
-            return raw_value
-        elif register.converter:
-            return register.converter(raw_value)
-        else:
-            return raw_value
+        # Wrap converter exceptions
+        try:
+            if register.data_type == "bool":
+                return bool(raw_value)
+            elif register.data_type == "enum":
+                return raw_value
+            elif register.converter:
+                return register.converter(raw_value)
+            else:
+                return raw_value
+        except (TypeError, ValueError, ArithmeticError) as e:
+            raise DataConversionError(
+                register.name, raw_value, f"{type(e).__name__}: {e}"
+            ) from e
 
     async def _write_register(self, register: RegisterDef, value: float | int | bool) -> None:
         """Write a value to a register with validation.
@@ -122,22 +149,90 @@ class KermiDevice:
             f"(unit {self.unit_id}, register {register.address}, raw: {raw_value})"
         )
 
+    def _is_unsupported_register_error(self, exception: Exception) -> bool:
+        """Check if exception indicates unsupported register.
+
+        Args:
+            exception: Exception to check
+
+        Returns:
+            True if this indicates register not available on device
+        """
+        # Check for ModbusIOException (malformed frames)
+        exception_type = type(exception).__name__
+        if exception_type == "ModbusIOException":
+            return True
+
+        # Check for specific error patterns in message
+        error_msg = str(exception).lower()
+        unsupported_patterns = [
+            "unable to decode",
+            "malformed frame",
+            "invalid response",
+            "byte_count",
+        ]
+        return any(pattern in error_msg for pattern in unsupported_patterns)
+
     async def get_all_readable_values(self) -> dict[str, Any]:
         """Read all readable registers and return as a dictionary.
 
         Returns:
-            Dictionary mapping register names to values
+            Dictionary mapping register names to values.
+            Unsupported or failed registers are set to None.
 
         Note:
             This method reads each register individually, which may be slow.
             Consider using specific getter methods for production use.
+
+            This method is designed to be resilient to firmware variations
+            and will continue reading other registers even if some fail.
+            Check logs for warnings about unsupported registers.
         """
         values: dict[str, Any] = {}
+        unsupported_registers: list[str] = []
+
         for name, register in self.registers.items():
-            if "R" in register.attribute:
-                try:
-                    values[name] = await self._read_register(register)
-                except Exception as e:
-                    logger.warning(f"Failed to read {name}: {e}")
-                    values[name] = None
+            if "R" not in register.attribute:
+                continue
+
+            try:
+                values[name] = await self._read_register(register)
+
+            except RegisterUnsupportedError as e:
+                # Data point not available on this device/firmware - this is expected
+                logger.info(
+                    f"Data point '{name}' not available on this device. "
+                    f"This is normal for some device models/firmware versions."
+                )
+                values[name] = None
+                unsupported_registers.append(name)
+
+            except DataConversionError as e:
+                # Converter failed - data read OK but conversion failed
+                logger.warning(
+                    f"Failed to convert '{name}' (raw value {e.raw_value}): {e}. "
+                    f"This may indicate unexpected firmware behavior."
+                )
+                values[name] = None
+
+            except (RegisterReadError, ConnectionError, ValidationError) as e:
+                # Standard errors
+                logger.warning(f"Failed to read '{name}': {type(e).__name__}: {e}")
+                values[name] = None
+
+            except Exception as e:
+                # Catch-all for truly unexpected errors
+                logger.error(
+                    f"Unexpected error reading '{name}': {type(e).__name__}: {e}",
+                    exc_info=True,
+                )
+                values[name] = None
+
+        # Summary logging for unsupported data points
+        if unsupported_registers:
+            logger.info(
+                f"{len(unsupported_registers)} data point(s) not supported by this device: "
+                f"{', '.join(unsupported_registers)}"
+            )
+
         return values

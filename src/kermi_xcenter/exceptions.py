@@ -78,3 +78,54 @@ class ReadOnlyRegisterError(KermiModbusError):
         """
         self.register_name = register_name
         super().__init__(f"Register '{register_name}' is read-only")
+
+
+class RegisterUnsupportedError(KermiModbusError):
+    """Data point not available on this device or firmware version.
+
+    This typically indicates a feature that exists in the specification
+    but is not implemented on this particular device model or firmware.
+    Similar to HTTP 501 Not Implemented.
+    """
+
+    def __init__(self, register_name: str, message: str = "") -> None:
+        """Initialize RegisterUnsupportedError.
+
+        Args:
+            register_name: Name of the unsupported data point
+            message: Optional error message
+        """
+        self.register_name = register_name
+        super().__init__(
+            f"Data point '{register_name}' not available on this device: {message}"
+            if message
+            else f"Data point '{register_name}' not available on this device"
+        )
+
+
+class DataConversionError(KermiModbusError):
+    """Failed to convert data to expected format.
+
+    Raised when data is successfully read from the device but the conversion
+    to the expected format fails (e.g., unexpected value format, type mismatch).
+    """
+
+    def __init__(self, register_name: str, raw_value: int, message: str = "") -> None:
+        """Initialize DataConversionError.
+
+        Args:
+            register_name: Name of the data point
+            raw_value: Raw value that failed to convert
+            message: Optional error message
+        """
+        self.register_name = register_name
+        self.raw_value = raw_value
+        super().__init__(
+            f"Failed to convert '{register_name}' value {raw_value}: {message}"
+            if message
+            else f"Failed to convert '{register_name}' value {raw_value}"
+        )
+
+
+# Protocol-agnostic alias for future compatibility
+KermiError = KermiModbusError
