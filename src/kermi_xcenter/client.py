@@ -39,7 +39,7 @@ class KermiModbusClient:
         self,
         host: str | None = None,
         port: int | str = 502,
-        timeout: float = 3.0,
+        timeout: float = 1.0,
         retry_on_empty: bool = True,
         retries: int = 3,
         use_rtu: bool = False,
@@ -114,6 +114,20 @@ class KermiModbusClient:
             self._connected = False
             logger.info("Disconnected")
 
+    async def reconnect(self) -> None:
+        """Force reconnection to recover from corrupted state.
+
+        Useful when connection buffer is corrupted by protocol errors
+        (e.g., malformed Modbus frames from device firmware bugs).
+
+        Raises:
+            ConnectionError: If reconnection fails
+        """
+        logger.info("Reconnecting to recover from protocol error...")
+        await self.disconnect()
+        await self.connect()
+        logger.info("Reconnection successful")
+
     async def __aenter__(self) -> Self:
         """Async context manager entry."""
         await self.connect()
@@ -174,6 +188,23 @@ class KermiModbusClient:
                     raise RegisterReadError(address, "Invalid response format")
 
             except Exception as e:
+                # Check if this is a ModbusIOException (malformed frame) - don't retry these
+                current: BaseException | None = e
+                is_malformed_frame = False
+                while current is not None:
+                    if type(current).__name__ == "ModbusIOException":
+                        is_malformed_frame = True
+                        break
+                    current = current.__cause__
+
+                # Fail fast on malformed frames (permanent firmware bugs)
+                if is_malformed_frame:
+                    logger.debug(
+                        f"Malformed frame detected for register {address}, failing immediately"
+                    )
+                    raise RegisterReadError(address, f"Malformed frame: {e}") from e
+
+                # Retry transient errors
                 if attempt < self._retries - 1:
                     logger.warning(f"Read failed (attempt {attempt + 1}): {e}")
                     await asyncio.sleep(0.1 * (attempt + 1))  # Exponential backoff
@@ -220,6 +251,23 @@ class KermiModbusClient:
                 return
 
             except Exception as e:
+                # Check if this is a ModbusIOException (malformed frame) - don't retry these
+                current: BaseException | None = e
+                is_malformed_frame = False
+                while current is not None:
+                    if type(current).__name__ == "ModbusIOException":
+                        is_malformed_frame = True
+                        break
+                    current = current.__cause__
+
+                # Fail fast on malformed frames (permanent firmware bugs)
+                if is_malformed_frame:
+                    logger.debug(
+                        f"Malformed frame detected for register {address}, failing immediately"
+                    )
+                    raise RegisterWriteError(address, value, f"Malformed frame: {e}") from e
+
+                # Retry transient errors
                 if attempt < self._retries - 1:
                     logger.warning(f"Write failed (attempt {attempt + 1}): {e}")
                     await asyncio.sleep(0.1 * (attempt + 1))
@@ -268,6 +316,25 @@ class KermiModbusClient:
                 return
 
             except Exception as e:
+                # Check if this is a ModbusIOException (malformed frame) - don't retry these
+                current: BaseException | None = e
+                is_malformed_frame = False
+                while current is not None:
+                    if type(current).__name__ == "ModbusIOException":
+                        is_malformed_frame = True
+                        break
+                    current = current.__cause__
+
+                # Fail fast on malformed frames (permanent firmware bugs)
+                if is_malformed_frame:
+                    logger.debug(
+                        f"Malformed frame detected for register {address}, failing immediately"
+                    )
+                    raise RegisterWriteError(
+                        address, values[0] if values else 0, f"Malformed frame: {e}"
+                    ) from e
+
+                # Retry transient errors
                 if attempt < self._retries - 1:
                     logger.warning(f"Write failed (attempt {attempt + 1}): {e}")
                     await asyncio.sleep(0.1 * (attempt + 1))

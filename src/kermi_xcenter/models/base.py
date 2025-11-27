@@ -93,9 +93,7 @@ class KermiDevice:
             else:
                 return raw_value
         except (TypeError, ValueError, ArithmeticError) as e:
-            raise DataConversionError(
-                register.name, raw_value, f"{type(e).__name__}: {e}"
-            ) from e
+            raise DataConversionError(register.name, raw_value, f"{type(e).__name__}: {e}") from e
 
     async def _write_register(self, register: RegisterDef, value: float | int | bool) -> None:
         """Write a value to a register with validation.
@@ -158,10 +156,13 @@ class KermiDevice:
         Returns:
             True if this indicates register not available on device
         """
-        # Check for ModbusIOException (malformed frames)
-        exception_type = type(exception).__name__
-        if exception_type == "ModbusIOException":
-            return True
+        # Check for ModbusIOException (malformed frames) in exception chain
+        current: BaseException | None = exception
+        while current is not None:
+            exception_type = type(current).__name__
+            if exception_type == "ModbusIOException":
+                return True
+            current = current.__cause__
 
         # Check for specific error patterns in message
         error_msg = str(exception).lower()
@@ -187,6 +188,9 @@ class KermiDevice:
             This method is designed to be resilient to firmware variations
             and will continue reading other registers even if some fail.
             Check logs for warnings about unsupported registers.
+
+            If a protocol error corrupts the connection (e.g., malformed Modbus frame),
+            this method will automatically reconnect to recover.
         """
         values: dict[str, Any] = {}
         unsupported_registers: list[str] = []
@@ -198,7 +202,7 @@ class KermiDevice:
             try:
                 values[name] = await self._read_register(register)
 
-            except RegisterUnsupportedError as e:
+            except RegisterUnsupportedError:
                 # Data point not available on this device/firmware - this is expected
                 logger.info(
                     f"Data point '{name}' not available on this device. "
@@ -206,6 +210,16 @@ class KermiDevice:
                 )
                 values[name] = None
                 unsupported_registers.append(name)
+
+                # Reconnect to recover from connection corruption caused by malformed frame
+                try:
+                    logger.debug("Reconnecting after malformed frame...")
+                    await self.client.reconnect()
+                except Exception as reconnect_error:
+                    logger.warning(
+                        f"Reconnection failed: {reconnect_error}. "
+                        f"Continuing with existing connection..."
+                    )
 
             except DataConversionError as e:
                 # Converter failed - data read OK but conversion failed
