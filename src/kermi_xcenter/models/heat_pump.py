@@ -31,18 +31,24 @@ class HeatPump(KermiDevice):
         ...     print(f"Outdoor: {temp}°C, COP: {cop}, Status: {status.name}")
     """
 
-    def __init__(self, client: KermiModbusClient, unit_id: int = 40) -> None:
+    def __init__(
+        self,
+        client: KermiModbusClient,
+        unit_id: int = 40,
+        capabilities: dict[str, bool] | None = None,
+    ) -> None:
         """Initialize heat pump device.
 
         Args:
             client: Modbus client instance
             unit_id: Modbus unit ID (default: 40)
+            capabilities: Optional pre-discovered capabilities to skip unavailable registers
         """
-        super().__init__(client, unit_id, HEAT_PUMP_REGISTERS)
+        super().__init__(client, unit_id, HEAT_PUMP_REGISTERS, capabilities)
 
     # Energy source temperatures
 
-    async def get_energy_source_outlet(self) -> float:
+    async def get_energy_source_outlet(self) -> float | None:
         """Get energy source outlet temperature in °C.
 
         Kermi code: B14, Register: 1
@@ -50,7 +56,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["energy_source_outlet"])
 
-    async def get_energy_source_inlet(self) -> float:
+    async def get_energy_source_inlet(self) -> float | None:
         """Get energy source inlet temperature in °C.
 
         Kermi code: B15, Register: 2
@@ -58,7 +64,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["energy_source_inlet"])
 
-    async def get_outdoor_temperature(self) -> float:
+    async def get_outdoor_temperature(self) -> float | None:
         """Get outdoor temperature in °C.
 
         Kermi code: BOT, Register: 3
@@ -68,7 +74,7 @@ class HeatPump(KermiDevice):
 
     # Heat pump circuit
 
-    async def get_supply_temp_heat_pump(self) -> float:
+    async def get_supply_temp_heat_pump(self) -> float | None:
         """Get heat pump supply temperature in °C.
 
         Kermi code: B16, Register: 50
@@ -76,7 +82,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["supply_temp_heat_pump"])
 
-    async def get_return_temp_heat_pump(self) -> float:
+    async def get_return_temp_heat_pump(self) -> float | None:
         """Get heat pump return temperature in °C.
 
         Kermi code: B17, Register: 51
@@ -84,7 +90,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["return_temp_heat_pump"])
 
-    async def get_flow_rate_heat_pump(self) -> float:
+    async def get_flow_rate_heat_pump(self) -> float | None:
         """Get heat pump flow rate in l/min.
 
         Kermi code: P13, Register: 52
@@ -94,7 +100,7 @@ class HeatPump(KermiDevice):
 
     # COP values
 
-    async def get_cop_total(self) -> float:
+    async def get_cop_total(self) -> float | None:
         """Get current total COP (Coefficient of Performance).
 
         Register: 100
@@ -102,7 +108,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["cop_total"])
 
-    async def get_cop_heating(self) -> float:
+    async def get_cop_heating(self) -> float | None:
         """Get current COP for heating mode.
 
         Register: 101
@@ -110,7 +116,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["cop_heating"])
 
-    async def get_cop_hot_water(self) -> float:
+    async def get_cop_hot_water(self) -> float | None:
         """Get current COP for hot water heating.
 
         Register: 102
@@ -118,7 +124,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["cop_hot_water"])
 
-    async def get_cop_cooling(self) -> float:
+    async def get_cop_cooling(self) -> float | None:
         """Get current COP for cooling mode.
 
         Register: 103
@@ -128,7 +134,7 @@ class HeatPump(KermiDevice):
 
     # Thermal power
 
-    async def get_power_total(self) -> float:
+    async def get_power_total(self) -> float | None:
         """Get current total thermal power in kW.
 
         Register: 104
@@ -136,7 +142,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["power_total"])
 
-    async def get_power_heating(self) -> float:
+    async def get_power_heating(self) -> float | None:
         """Get current heating power in kW.
 
         Register: 105
@@ -144,7 +150,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["power_heating"])
 
-    async def get_power_hot_water(self) -> float:
+    async def get_power_hot_water(self) -> float | None:
         """Get current hot water heating power in kW.
 
         Register: 106
@@ -152,7 +158,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["power_hot_water"])
 
-    async def get_power_cooling(self) -> float:
+    async def get_power_cooling(self) -> float | None:
         """Get current cooling power in kW.
 
         Register: 107
@@ -162,7 +168,7 @@ class HeatPump(KermiDevice):
 
     # Electrical power
 
-    async def get_power_electrical_total(self) -> float:
+    async def get_power_electrical_total(self) -> float | None:
         """Get current total electrical power consumption in kW.
 
         Register: 108
@@ -170,7 +176,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["power_electrical_total"])
 
-    async def get_power_electrical_heating(self) -> float:
+    async def get_power_electrical_heating(self) -> float | None:
         """Get current electrical power consumption for heating in kW.
 
         Register: 109
@@ -178,7 +184,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["power_electrical_heating"])
 
-    async def get_power_electrical_hot_water(self) -> float:
+    async def get_power_electrical_hot_water(self) -> float | None:
         """Get current electrical power consumption for hot water in kW.
 
         Register: 110
@@ -186,7 +192,7 @@ class HeatPump(KermiDevice):
         """
         return await self._read_register(self.registers["power_electrical_hot_water"])
 
-    async def get_power_electrical_cooling(self) -> float:
+    async def get_power_electrical_cooling(self) -> float | None:
         """Get current electrical power consumption for cooling in kW.
 
         Register: 111
@@ -196,33 +202,36 @@ class HeatPump(KermiDevice):
 
     # Operating hours
 
-    async def get_operating_hours_fan(self) -> int:
+    async def get_operating_hours_fan(self) -> int | None:
         """Get fan operating hours.
 
         Register: 150
         German: Betriebsstunden Lüfter
         """
-        return int(await self._read_register(self.registers["operating_hours_fan"]))
+        value = await self._read_register(self.registers["operating_hours_fan"])
+        return int(value) if value is not None else None
 
-    async def get_operating_hours_storage_pump(self) -> int:
+    async def get_operating_hours_storage_pump(self) -> int | None:
         """Get storage charging pump operating hours.
 
         Register: 151
         German: Betriebsstunden Speicherladepumpe
         """
-        return int(await self._read_register(self.registers["operating_hours_storage_pump"]))
+        value = await self._read_register(self.registers["operating_hours_storage_pump"])
+        return int(value) if value is not None else None
 
-    async def get_operating_hours_compressor(self) -> int:
+    async def get_operating_hours_compressor(self) -> int | None:
         """Get compressor operating hours.
 
         Register: 152
         German: Betriebsstunden Verdichter
         """
-        return int(await self._read_register(self.registers["operating_hours_compressor"]))
+        value = await self._read_register(self.registers["operating_hours_compressor"])
+        return int(value) if value is not None else None
 
     # Status and alarms
 
-    async def get_heat_pump_status(self) -> HeatPumpStatus:
+    async def get_heat_pump_status(self) -> HeatPumpStatus | None:
         """Get heat pump operating status.
 
         Register: 200
@@ -232,9 +241,9 @@ class HeatPump(KermiDevice):
             HeatPumpStatus enum value (STANDBY, ALARM, HOT_WATER, COOLING, etc.)
         """
         value = await self._read_register(self.registers["heat_pump_status"])
-        return HeatPumpStatus(int(value))
+        return HeatPumpStatus(int(value)) if value is not None else None
 
-    async def get_global_alarm(self) -> bool:
+    async def get_global_alarm(self) -> bool | None:
         """Get global alarm status.
 
         Register: 250
@@ -243,11 +252,12 @@ class HeatPump(KermiDevice):
         Returns:
             True if alarm is active, False otherwise
         """
-        return bool(await self._read_register(self.registers["global_alarm"]))
+        value = await self._read_register(self.registers["global_alarm"])
+        return bool(value) if value is not None else None
 
     # PV modulation
 
-    async def get_pv_modulation_status(self) -> bool:
+    async def get_pv_modulation_status(self) -> bool | None:
         """Get PV modulation status.
 
         Register: 300
@@ -256,15 +266,17 @@ class HeatPump(KermiDevice):
         Returns:
             True if PV modulation is active, False otherwise
         """
-        return bool(await self._read_register(self.registers["pv_modulation_status"]))
+        value = await self._read_register(self.registers["pv_modulation_status"])
+        return bool(value) if value is not None else None
 
-    async def get_pv_modulation_power(self) -> int:
+    async def get_pv_modulation_power(self) -> int | None:
         """Get PV modulation power setting in Watts.
 
         Register: 301
         German: Aktuelle Leistung PV Modulation
         """
-        return int(await self._read_register(self.registers["pv_modulation_power"]))
+        value = await self._read_register(self.registers["pv_modulation_power"])
+        return int(value) if value is not None else None
 
     async def set_pv_modulation_power(self, watts: int) -> None:
         """Set PV modulation power in Watts.
@@ -277,7 +289,7 @@ class HeatPump(KermiDevice):
         """
         await self._write_register(self.registers["pv_modulation_power"], watts)
 
-    async def get_pv_modulation_setpoint_heating(self) -> float:
+    async def get_pv_modulation_setpoint_heating(self) -> float | None:
         """Get PV modulation heating circuit setpoint in °C.
 
         Register: 302
@@ -296,7 +308,7 @@ class HeatPump(KermiDevice):
         """
         await self._write_register(self.registers["pv_modulation_setpoint_heating"], temp)
 
-    async def get_pv_modulation_setpoint_hot_water(self) -> float:
+    async def get_pv_modulation_setpoint_hot_water(self) -> float | None:
         """Get PV modulation hot water setpoint in °C.
 
         Register: 303
