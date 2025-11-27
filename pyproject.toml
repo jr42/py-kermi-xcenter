@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kermi-xcenter"
-version = "0.0.1"
+version = "0.1.0"
 description = "Async Python interface for Kermi heat pumps via Modbus"
 authors = [{name = "Jeremias Reith", email = "jr42@users.noreply.github.com"}]
 readme = "README.md"
