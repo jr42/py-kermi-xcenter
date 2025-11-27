@@ -110,7 +110,33 @@ class KermiModbusClient:
         """Close connection to the Modbus device."""
         if self._connected:
             logger.info("Disconnecting from Modbus device...")
-            self._client.close()
+
+            # Suppress errors during cleanup
+            # (malformed frames in buffer cause harmless errors during close)
+            import asyncio
+            import warnings
+
+            # Suppress pymodbus and asyncio errors
+            pymodbus_logger = logging.getLogger("pymodbus")
+            asyncio_logger = logging.getLogger("asyncio")
+            original_pymodbus = pymodbus_logger.level
+            original_asyncio = asyncio_logger.level
+
+            pymodbus_logger.setLevel(logging.CRITICAL)
+            asyncio_logger.setLevel(logging.CRITICAL)
+
+            # Also suppress warnings about unclosed resources
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", ResourceWarning)
+
+                try:
+                    self._client.close()
+                    # Give asyncio a moment to clean up transport gracefully
+                    await asyncio.sleep(0.1)
+                finally:
+                    pymodbus_logger.setLevel(original_pymodbus)
+                    asyncio_logger.setLevel(original_asyncio)
+
             self._connected = False
             logger.info("Disconnected")
 
