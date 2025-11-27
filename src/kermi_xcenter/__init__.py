@@ -21,9 +21,11 @@ __version__ = "0.0.1"
 from .client import KermiModbusClient
 from .exceptions import (
     ConnectionError,
+    DataConversionError,
     KermiModbusError,
     ReadOnlyRegisterError,
     RegisterReadError,
+    RegisterUnsupportedError,
     RegisterWriteError,
     ValidationError,
 )
@@ -52,7 +54,9 @@ __all__ = [
     # Exceptions
     "KermiModbusError",
     "ConnectionError",
+    "DataConversionError",
     "RegisterReadError",
+    "RegisterUnsupportedError",
     "RegisterWriteError",
     "ValidationError",
     "ReadOnlyRegisterError",
