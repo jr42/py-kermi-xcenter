@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2025-11-27
+
+### Fixed
+- Suppress pymodbus/asyncio cleanup stack traces when malformed frames leave bytes in the buffer, keeping disconnects quiet after successful runs.
+
+## [0.2.0] - 2025-11-27
+
+### Added
+- Pythonic `None` handling across all getter methods so unavailable registers return `Type | None` instead of raising `RegisterUnsupportedError`.
+- Capability discovery utilities (`discover_capabilities()`, `save_capabilities()`, `load_capabilities()`, `merge_capabilities()`) for probing and persisting supported registers.
+- Register validation fields (`min_valid_value` / `max_valid_value`) to automatically filter clearly invalid sensor readings.
+- Demo script `demo_v0.2.0.py` showcasing the discovery workflow.
+
+### Changed
+- Automatic connection recovery moved into `KermiDevice._read_register()` so every getter benefits from the resilient retry logic.
+- Device constructors accept cached capability maps to skip probing phases once a system is known.
+
 ## [0.1.0] - 2025-01-27
 
 ### Added
@@ -39,5 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive register definitions, type-safe enums, and automatic data conversions
 - Full test suite with 81% coverage
 
+[0.2.1]: https://github.com/jr42/py-kermi-xcenter/releases/tag/v0.2.1
+[0.2.0]: https://github.com/jr42/py-kermi-xcenter/releases/tag/v0.2.0
 [0.1.0]: https://github.com/jr42/py-kermi-xcenter/releases/tag/v0.1.0
 [0.0.1]: https://github.com/jr42/py-kermi-xcenter/releases/tag/v0.0.1
