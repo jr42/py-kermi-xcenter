@@ -42,18 +42,24 @@ class StorageSystem(KermiDevice):
         ...     await hot_water_storage.set_hot_water_setpoint_constant(50.0)
     """
 
-    def __init__(self, client: KermiModbusClient, unit_id: int = 50) -> None:
+    def __init__(
+        self,
+        client: KermiModbusClient,
+        unit_id: int = 50,
+        capabilities: dict[str, bool] | None = None,
+    ) -> None:
         """Initialize storage system device.
 
         Args:
             client: Modbus client instance
             unit_id: Modbus unit ID (50 for heating, 51 for hot water)
+            capabilities: Optional pre-discovered capabilities to skip unavailable registers
         """
-        super().__init__(client, unit_id, STORAGE_SYSTEM_REGISTERS)
+        super().__init__(client, unit_id, STORAGE_SYSTEM_REGISTERS, capabilities)
 
     # Heating storage temperatures
 
-    async def get_heating_actual(self) -> float:
+    async def get_heating_actual(self) -> float | None:
         """Get heating storage actual temperature in °C.
 
         Register: 1
@@ -61,7 +67,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["heating_actual"])
 
-    async def get_heating_setpoint(self) -> float:
+    async def get_heating_setpoint(self) -> float | None:
         """Get heating storage setpoint temperature in °C.
 
         Register: 2
@@ -71,7 +77,7 @@ class StorageSystem(KermiDevice):
 
     # Cooling storage temperatures
 
-    async def get_cooling_actual(self) -> float:
+    async def get_cooling_actual(self) -> float | None:
         """Get cooling storage actual temperature in °C.
 
         Register: 50
@@ -79,7 +85,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["cooling_actual"])
 
-    async def get_cooling_setpoint(self) -> float:
+    async def get_cooling_setpoint(self) -> float | None:
         """Get cooling storage setpoint temperature in °C.
 
         Register: 51
@@ -89,7 +95,7 @@ class StorageSystem(KermiDevice):
 
     # Hot water temperatures
 
-    async def get_hot_water_actual(self) -> float:
+    async def get_hot_water_actual(self) -> float | None:
         """Get hot water actual temperature in °C.
 
         Register: 100
@@ -97,7 +103,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["hot_water_actual"])
 
-    async def get_hot_water_setpoint(self) -> float:
+    async def get_hot_water_setpoint(self) -> float | None:
         """Get hot water setpoint temperature in °C.
 
         Register: 101
@@ -105,7 +111,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["hot_water_setpoint"])
 
-    async def get_hot_water_setpoint_constant(self) -> float:
+    async def get_hot_water_setpoint_constant(self) -> float | None:
         """Get constant hot water setpoint in °C.
 
         Register: 102
@@ -125,13 +131,14 @@ class StorageSystem(KermiDevice):
         """
         await self._write_register(self.registers["hot_water_setpoint_constant"], temp)
 
-    async def get_hot_water_single_charge_active(self) -> bool:
+    async def get_hot_water_single_charge_active(self) -> bool | None:
         """Get hot water single charge activation status.
 
         Register: 103
         German: Einmalladung TWE
         """
-        return bool(await self._read_register(self.registers["hot_water_single_charge_active"]))
+        value = await self._read_register(self.registers["hot_water_single_charge_active"])
+        return bool(value) if value is not None else None
 
     async def set_hot_water_single_charge_active(self, active: bool) -> None:
         """Activate or deactivate hot water single charge.
@@ -144,7 +151,7 @@ class StorageSystem(KermiDevice):
         """
         await self._write_register(self.registers["hot_water_single_charge_active"], int(active))
 
-    async def get_hot_water_single_charge_setpoint(self) -> float:
+    async def get_hot_water_single_charge_setpoint(self) -> float | None:
         """Get hot water single charge setpoint in °C.
 
         Register: 104
@@ -166,7 +173,7 @@ class StorageSystem(KermiDevice):
 
     # Heating circuit
 
-    async def get_heating_circuit_status(self) -> HeatingCircuitStatus:
+    async def get_heating_circuit_status(self) -> HeatingCircuitStatus | None:
         """Get heating circuit status.
 
         Register: 150
@@ -176,9 +183,9 @@ class StorageSystem(KermiDevice):
             HeatingCircuitStatus enum value
         """
         value = await self._read_register(self.registers["heating_circuit_status"])
-        return HeatingCircuitStatus(int(value))
+        return HeatingCircuitStatus(int(value)) if value is not None else None
 
-    async def get_heating_circuit_actual(self) -> float:
+    async def get_heating_circuit_actual(self) -> float | None:
         """Get heating circuit actual temperature in °C.
 
         Register: 151
@@ -186,7 +193,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["heating_circuit_actual"])
 
-    async def get_heating_circuit_setpoint(self) -> float:
+    async def get_heating_circuit_setpoint(self) -> float | None:
         """Get heating circuit setpoint temperature in °C.
 
         Register: 152
@@ -195,7 +202,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["heating_circuit_setpoint"])
 
-    async def get_heating_circuit_operating_mode(self) -> OperatingMode:
+    async def get_heating_circuit_operating_mode(self) -> OperatingMode | None:
         """Get heating circuit operating mode (current actual mode).
 
         Register: 153
@@ -205,9 +212,9 @@ class StorageSystem(KermiDevice):
             OperatingMode enum value (OFF, HEATING, COOLING)
         """
         value = await self._read_register(self.registers["heating_circuit_operating_mode"])
-        return OperatingMode(int(value))
+        return OperatingMode(int(value)) if value is not None else None
 
-    async def get_heating_circuit_operating_type(self) -> OperatingType:
+    async def get_heating_circuit_operating_type(self) -> OperatingType | None:
         """Get heating circuit operating type (user selection).
 
         Register: 154
@@ -217,7 +224,7 @@ class StorageSystem(KermiDevice):
             OperatingType enum value (AUTO, HEATING)
         """
         value = await self._read_register(self.registers["heating_circuit_operating_type"])
-        return OperatingType(int(value))
+        return OperatingType(int(value)) if value is not None else None
 
     async def set_heating_circuit_operating_type(self, mode: OperatingType) -> None:
         """Set heating circuit operating type.
@@ -230,7 +237,7 @@ class StorageSystem(KermiDevice):
         """
         await self._write_register(self.registers["heating_circuit_operating_type"], mode.value)
 
-    async def get_heating_circuit_energy_mode(self) -> EnergyMode:
+    async def get_heating_circuit_energy_mode(self) -> EnergyMode | None:
         """Get heating circuit energy mode.
 
         Register: 155
@@ -240,7 +247,7 @@ class StorageSystem(KermiDevice):
             EnergyMode enum value
         """
         value = await self._read_register(self.registers["heating_circuit_energy_mode"])
-        return EnergyMode(int(value))
+        return EnergyMode(int(value)) if value is not None else None
 
     async def set_heating_circuit_energy_mode(self, mode: EnergyMode) -> None:
         """Set heating circuit energy mode.
@@ -253,7 +260,7 @@ class StorageSystem(KermiDevice):
         """
         await self._write_register(self.registers["heating_circuit_energy_mode"], mode.value)
 
-    async def get_heating_curve_parallel_offset(self) -> float:
+    async def get_heating_curve_parallel_offset(self) -> float | None:
         """Get heating curve parallel offset in K.
 
         Register: 156
@@ -273,7 +280,7 @@ class StorageSystem(KermiDevice):
         """
         await self._write_register(self.registers["heating_curve_parallel_offset"], offset)
 
-    async def get_season_selection_manual(self) -> SeasonSelection:
+    async def get_season_selection_manual(self) -> SeasonSelection | None:
         """Get manual season selection.
 
         Register: 157
@@ -283,7 +290,7 @@ class StorageSystem(KermiDevice):
             SeasonSelection enum value
         """
         value = await self._read_register(self.registers["season_selection_manual"])
-        return SeasonSelection(int(value))
+        return SeasonSelection(int(value)) if value is not None else None
 
     async def set_season_selection_manual(self, selection: SeasonSelection) -> None:
         """Set manual season selection.
@@ -298,7 +305,7 @@ class StorageSystem(KermiDevice):
 
     # Season thresholds
 
-    async def get_summer_mode_heating_off(self) -> float:
+    async def get_summer_mode_heating_off(self) -> float | None:
         """Get summer mode (heating off) threshold in °C.
 
         Register: 158
@@ -317,7 +324,7 @@ class StorageSystem(KermiDevice):
         """
         await self._write_register(self.registers["summer_mode_heating_off"], temp)
 
-    async def get_winter_mode_heating_on(self) -> float:
+    async def get_winter_mode_heating_on(self) -> float | None:
         """Get winter mode (heating on) threshold in °C.
 
         Register: 159
@@ -336,7 +343,7 @@ class StorageSystem(KermiDevice):
         """
         await self._write_register(self.registers["winter_mode_heating_on"], temp)
 
-    async def get_cooling_mode_on(self) -> float:
+    async def get_cooling_mode_on(self) -> float | None:
         """Get cooling mode on threshold in °C.
 
         Register: 160
@@ -355,7 +362,7 @@ class StorageSystem(KermiDevice):
         """
         await self._write_register(self.registers["cooling_mode_on"], temp)
 
-    async def get_cooling_mode_off(self) -> float:
+    async def get_cooling_mode_off(self) -> float | None:
         """Get cooling mode off threshold in °C.
 
         Register: 161
@@ -374,25 +381,27 @@ class StorageSystem(KermiDevice):
         """
         await self._write_register(self.registers["cooling_mode_off"], temp)
 
-    async def get_summer_mode_active(self) -> bool:
+    async def get_summer_mode_active(self) -> bool | None:
         """Get summer mode active status.
 
         Register: 162
         German: Sommerbetrieb aktiv
         """
-        return bool(await self._read_register(self.registers["summer_mode_active"]))
+        value = await self._read_register(self.registers["summer_mode_active"])
+        return bool(value) if value is not None else None
 
-    async def get_cooling_mode_active(self) -> bool:
+    async def get_cooling_mode_active(self) -> bool | None:
         """Get cooling mode active status.
 
         Register: 163
         German: Kühlbetrieb aktiv
         """
-        return bool(await self._read_register(self.registers["cooling_mode_active"]))
+        value = await self._read_register(self.registers["cooling_mode_active"])
+        return bool(value) if value is not None else None
 
     # External heat generator
 
-    async def get_external_heat_gen_status_heating(self) -> ExternalHeatGeneratorStatus:
+    async def get_external_heat_gen_status_heating(self) -> ExternalHeatGeneratorStatus | None:
         """Get external heat generator status for heating.
 
         Register: 200
@@ -402,9 +411,9 @@ class StorageSystem(KermiDevice):
             ExternalHeatGeneratorStatus enum value
         """
         value = await self._read_register(self.registers["external_heat_gen_status_heating"])
-        return ExternalHeatGeneratorStatus(int(value))
+        return ExternalHeatGeneratorStatus(int(value)) if value is not None else None
 
-    async def get_external_heat_gen_mode_heating(self) -> ExternalHeatGeneratorMode:
+    async def get_external_heat_gen_mode_heating(self) -> ExternalHeatGeneratorMode | None:
         """Get external heat generator mode for heating.
 
         Register: 201
@@ -414,7 +423,7 @@ class StorageSystem(KermiDevice):
             ExternalHeatGeneratorMode enum value
         """
         value = await self._read_register(self.registers["external_heat_gen_mode_heating"])
-        return ExternalHeatGeneratorMode(int(value))
+        return ExternalHeatGeneratorMode(int(value)) if value is not None else None
 
     async def set_external_heat_gen_mode_heating(self, mode: ExternalHeatGeneratorMode) -> None:
         """Set external heat generator mode for heating.
@@ -426,7 +435,7 @@ class StorageSystem(KermiDevice):
         """
         await self._write_register(self.registers["external_heat_gen_mode_heating"], mode.value)
 
-    async def get_external_heat_gen_status_hot_water(self) -> ExternalHeatGeneratorStatus:
+    async def get_external_heat_gen_status_hot_water(self) -> ExternalHeatGeneratorStatus | None:
         """Get external heat generator status for hot water.
 
         Register: 202
@@ -436,9 +445,9 @@ class StorageSystem(KermiDevice):
             ExternalHeatGeneratorStatus enum value
         """
         value = await self._read_register(self.registers["external_heat_gen_status_hot_water"])
-        return ExternalHeatGeneratorStatus(int(value))
+        return ExternalHeatGeneratorStatus(int(value)) if value is not None else None
 
-    async def get_external_heat_gen_mode_hot_water(self) -> ExternalHeatGeneratorMode:
+    async def get_external_heat_gen_mode_hot_water(self) -> ExternalHeatGeneratorMode | None:
         """Get external heat generator mode for hot water.
 
         Register: 203
@@ -448,7 +457,7 @@ class StorageSystem(KermiDevice):
             ExternalHeatGeneratorMode enum value
         """
         value = await self._read_register(self.registers["external_heat_gen_mode_hot_water"])
-        return ExternalHeatGeneratorMode(int(value))
+        return ExternalHeatGeneratorMode(int(value)) if value is not None else None
 
     async def set_external_heat_gen_mode_hot_water(self, mode: ExternalHeatGeneratorMode) -> None:
         """Set external heat generator mode for hot water.
@@ -462,7 +471,7 @@ class StorageSystem(KermiDevice):
 
     # Temperature sensors
 
-    async def get_t1_temperature(self) -> float:
+    async def get_t1_temperature(self) -> float | None:
         """Get T1 (X13) temperature sensor reading in °C.
 
         Register: 250
@@ -470,7 +479,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["t1_temperature"])
 
-    async def get_t2_temperature(self) -> float:
+    async def get_t2_temperature(self) -> float | None:
         """Get T2 (X12) temperature sensor reading in °C.
 
         Register: 251
@@ -478,7 +487,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["t2_temperature"])
 
-    async def get_t3_temperature(self) -> float:
+    async def get_t3_temperature(self) -> float | None:
         """Get T3 (X11) temperature sensor reading in °C.
 
         Register: 252
@@ -486,7 +495,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["t3_temperature"])
 
-    async def get_t4_temperature(self) -> float:
+    async def get_t4_temperature(self) -> float | None:
         """Get T4 (X10) temperature sensor reading in °C.
 
         Register: 253
@@ -494,7 +503,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["t4_temperature"])
 
-    async def get_outdoor_temperature(self) -> float:
+    async def get_outdoor_temperature(self) -> float | None:
         """Get outdoor temperature in °C.
 
         Register: 254
@@ -502,7 +511,7 @@ class StorageSystem(KermiDevice):
         """
         return await self._read_register(self.registers["outdoor_temperature"])
 
-    async def get_outdoor_temperature_avg(self) -> float:
+    async def get_outdoor_temperature_avg(self) -> float | None:
         """Get average outdoor temperature in °C.
 
         Register: 255
@@ -512,18 +521,20 @@ class StorageSystem(KermiDevice):
 
     # Operating hours
 
-    async def get_operating_hours_circuit_pump(self) -> int:
+    async def get_operating_hours_circuit_pump(self) -> int | None:
         """Get heating circuit pump operating hours.
 
         Register: 300
         German: Heizkreispumpe Laufzeit
         """
-        return int(await self._read_register(self.registers["operating_hours_circuit_pump"]))
+        value = await self._read_register(self.registers["operating_hours_circuit_pump"])
+        return int(value) if value is not None else None
 
-    async def get_operating_hours_external_heat_gen(self) -> int:
+    async def get_operating_hours_external_heat_gen(self) -> int | None:
         """Get external heat generator operating hours.
 
         Register: 301
         German: Externer Wärmeerzeuger Laufzeit
         """
-        return int(await self._read_register(self.registers["operating_hours_external_heat_gen"]))
+        value = await self._read_register(self.registers["operating_hours_external_heat_gen"])
+        return int(value) if value is not None else None

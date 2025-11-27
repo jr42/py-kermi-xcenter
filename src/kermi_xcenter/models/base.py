@@ -9,7 +9,6 @@ from ..exceptions import (
     DataConversionError,
     ReadOnlyRegisterError,
     RegisterReadError,
-    RegisterUnsupportedError,
     ValidationError,
 )
 from ..registers import RegisterDef
@@ -35,6 +34,7 @@ class KermiDevice:
         client: KermiModbusClient,
         unit_id: UnitId,
         registers: dict[str, RegisterDef],
+        capabilities: dict[str, bool] | None = None,
     ) -> None:
         """Initialize the device.
 
@@ -42,25 +42,43 @@ class KermiDevice:
             client: Modbus client instance
             unit_id: Modbus unit ID
             registers: Register definitions for this device
+            capabilities: Optional pre-discovered capabilities dict mapping register
+                names to availability (True=available, False=unavailable).
+                If provided, unavailable registers will be skipped without attempting
+                to read them, improving performance.
         """
         self.client = client
         self.unit_id = unit_id
         self.registers = registers
+        self._capabilities: dict[str, bool] = capabilities.copy() if capabilities else {}
 
-    async def _read_register(self, register: RegisterDef) -> float | int | bool:
+    async def _read_register(self, register: RegisterDef) -> float | int | bool | None:
         """Read a register and convert to engineering units.
+
+        This method automatically handles unavailable registers by returning None
+        instead of raising exceptions. This follows the Pythonic pattern of dict.get()
+        and os.getenv() for graceful handling of missing data.
+
+        Connection recovery is automatic - if a malformed Modbus frame corrupts the
+        connection, this method will reconnect transparently.
 
         Args:
             register: Register definition
 
         Returns:
-            Converted value in engineering units (or bool for boolean registers)
+            Converted value in engineering units (or bool for boolean registers),
+            or None if the register is not available on this device.
 
         Raises:
-            RegisterReadError: If read fails
-            RegisterUnsupportedError: If register not available on this device
+            RegisterReadError: If read fails for reasons other than unsupported register
             DataConversionError: If conversion to engineering units fails
+            ConnectionError: If connection fails and cannot be recovered
         """
+        # Check capabilities cache first
+        if register.name in self._capabilities and not self._capabilities[register.name]:
+            logger.debug(f"Skipping '{register.name}' (cached as unavailable on this device)")
+            return None
+
         try:
             raw_value = await self.client.read_register(
                 address=register.address,
@@ -69,31 +87,69 @@ class KermiDevice:
         except Exception as e:
             # Check if this is a protocol-level error indicating unsupported register
             if self._is_unsupported_register_error(e):
-                raise RegisterUnsupportedError(
-                    register.name, "Device returned malformed response"
-                ) from e
-            # Re-raise other errors as-is
+                # Reconnect to recover from connection corruption caused by malformed frame
+                try:
+                    logger.debug(
+                        f"Register '{register.name}' not available on this device. "
+                        f"Reconnecting after malformed frame..."
+                    )
+                    await self.client.reconnect()
+                except Exception as reconnect_error:
+                    logger.warning(
+                        f"Reconnection failed after reading '{register.name}': {reconnect_error}. "
+                        f"Continuing with existing connection..."
+                    )
+
+                # Cache as unavailable for future calls
+                self._capabilities[register.name] = False
+
+                # Return None for unavailable register (Pythonic pattern)
+                return None
+
+            # Re-raise other errors as-is (connection errors, etc.)
             raise
 
         # Handle type conversion
         if isinstance(raw_value, list):
             if not raw_value:
                 # Empty response - treat as unsupported
-                raise RegisterUnsupportedError(register.name, "Device returned empty response")
+                logger.debug(f"Register '{register.name}' returned empty response")
+                return None
             raw_value = raw_value[0]
 
         # Wrap converter exceptions
+        converted_value: float | int | bool
         try:
             if register.data_type == "bool":
-                return bool(raw_value)
+                converted_value = bool(raw_value)
             elif register.data_type == "enum":
-                return raw_value
+                converted_value = raw_value
             elif register.converter:
-                return register.converter(raw_value)
+                converted_value = register.converter(raw_value)
             else:
-                return raw_value
+                converted_value = raw_value
         except (TypeError, ValueError, ArithmeticError) as e:
             raise DataConversionError(register.name, raw_value, f"{type(e).__name__}: {e}") from e
+
+        # Validate range for numeric values (filter invalid sensor data)
+        if isinstance(converted_value, (int, float)) and not isinstance(converted_value, bool):
+            if register.min_valid_value is not None and converted_value < register.min_valid_value:
+                logger.warning(
+                    f"Register '{register.name}': value {converted_value} {register.unit} "
+                    f"below physically valid minimum ({register.min_valid_value} {register.unit}). "
+                    f"This likely indicates disconnected/faulty sensor. Returning None."
+                )
+                return None
+
+            if register.max_valid_value is not None and converted_value > register.max_valid_value:
+                logger.warning(
+                    f"Register '{register.name}': value {converted_value} {register.unit} "
+                    f"above physically valid maximum ({register.max_valid_value} {register.unit}). "
+                    f"This likely indicates disconnected/faulty sensor. Returning None."
+                )
+                return None
+
+        return converted_value
 
     async def _write_register(self, register: RegisterDef, value: float | int | bool) -> None:
         """Write a value to a register with validation.
@@ -174,52 +230,91 @@ class KermiDevice:
         ]
         return any(pattern in error_msg for pattern in unsupported_patterns)
 
+    async def discover_capabilities(self) -> dict[str, bool]:
+        """Discover which registers are available on this device.
+
+        This method probes all readable registers to determine which are available
+        on this specific device. Results can be saved and reused to skip unavailable
+        registers in future sessions, improving performance.
+
+        The discovery process logs progress and automatically handles connection
+        recovery if needed. This may take some time for devices with many registers.
+
+        Returns:
+            Dictionary mapping register names to availability (True=available, False=unavailable)
+
+        Example:
+            >>> hp = HeatPump(client)
+            >>> async with client:
+            ...     caps = await hp.discover_capabilities()
+            ...     print(f"Discovered {sum(caps.values())}/{len(caps)} available registers")
+            ...
+            ...     # Create new instance with capabilities for faster operation
+            ...     hp = HeatPump(client, capabilities=caps)
+        """
+        capabilities: dict[str, bool] = {}
+
+        # Count readable registers
+        readable_registers = {
+            name: register for name, register in self.registers.items() if "R" in register.attribute
+        }
+
+        logger.info(
+            f"Discovering capabilities for {self.__class__.__name__} (Unit {self.unit_id})..."
+        )
+        logger.info(f"Probing {len(readable_registers)} readable registers...")
+
+        for name, register in readable_registers.items():
+            try:
+                # Use _read_register which handles reconnection automatically
+                value = await self._read_register(register)
+                capabilities[name] = value is not None
+
+                if capabilities[name]:
+                    logger.debug(f"  ✅ {name}: available (value: {value})")
+                else:
+                    logger.debug(f"  ⚠️  {name}: returned None (unavailable or invalid)")
+
+            except Exception as e:
+                # Unexpected error during probe
+                logger.warning(f"  ⚠️  {name}: probe failed ({type(e).__name__}: {e})")
+                capabilities[name] = False
+
+        # Summary
+        available_count = sum(1 for v in capabilities.values() if v)
+        logger.info(
+            f"Discovery complete: {available_count}/{len(capabilities)} registers available"
+        )
+
+        return capabilities
+
     async def get_all_readable_values(self) -> dict[str, Any]:
         """Read all readable registers and return as a dictionary.
 
+        This method is resilient to device variations - unavailable registers
+        automatically return None without raising exceptions. Connection recovery
+        is handled transparently by the underlying _read_register() method.
+
         Returns:
             Dictionary mapping register names to values.
-            Unsupported or failed registers are set to None.
+            Unavailable or failed registers are set to None.
 
         Note:
             This method reads each register individually, which may be slow.
             Consider using specific getter methods for production use.
-
-            This method is designed to be resilient to firmware variations
-            and will continue reading other registers even if some fail.
-            Check logs for warnings about unsupported registers.
-
-            If a protocol error corrupts the connection (e.g., malformed Modbus frame),
-            this method will automatically reconnect to recover.
         """
         values: dict[str, Any] = {}
-        unsupported_registers: list[str] = []
+        none_count = 0
 
         for name, register in self.registers.items():
             if "R" not in register.attribute:
                 continue
 
             try:
-                values[name] = await self._read_register(register)
-
-            except RegisterUnsupportedError:
-                # Data point not available on this device/firmware - this is expected
-                logger.info(
-                    f"Data point '{name}' not available on this device. "
-                    f"This is normal for some device models/firmware versions."
-                )
-                values[name] = None
-                unsupported_registers.append(name)
-
-                # Reconnect to recover from connection corruption caused by malformed frame
-                try:
-                    logger.debug("Reconnecting after malformed frame...")
-                    await self.client.reconnect()
-                except Exception as reconnect_error:
-                    logger.warning(
-                        f"Reconnection failed: {reconnect_error}. "
-                        f"Continuing with existing connection..."
-                    )
+                value = await self._read_register(register)
+                values[name] = value
+                if value is None:
+                    none_count += 1
 
             except DataConversionError as e:
                 # Converter failed - data read OK but conversion failed
@@ -228,11 +323,13 @@ class KermiDevice:
                     f"This may indicate unexpected firmware behavior."
                 )
                 values[name] = None
+                none_count += 1
 
             except (RegisterReadError, ConnectionError, ValidationError) as e:
                 # Standard errors
                 logger.warning(f"Failed to read '{name}': {type(e).__name__}: {e}")
                 values[name] = None
+                none_count += 1
 
             except Exception as e:
                 # Catch-all for truly unexpected errors
@@ -241,12 +338,15 @@ class KermiDevice:
                     exc_info=True,
                 )
                 values[name] = None
+                none_count += 1
 
-        # Summary logging for unsupported data points
-        if unsupported_registers:
+        # Summary logging
+        total_readable = len([r for r in self.registers.values() if "R" in r.attribute])
+        available_count = total_readable - none_count
+        if none_count > 0:
             logger.info(
-                f"{len(unsupported_registers)} data point(s) not supported by this device: "
-                f"{', '.join(unsupported_registers)}"
+                f"Read {available_count}/{total_readable} registers successfully. "
+                f"{none_count} register(s) unavailable on this device."
             )
 
         return values

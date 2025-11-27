@@ -35,8 +35,10 @@ class RegisterDef:
         attribute: Register attribute (R or R/W)
         code: Kermi sensor/parameter code (e.g., B14, BOT)
         data_type: Data type (int16, uint16, enum, bool)
-        min_value: Minimum allowed value (for validation)
-        max_value: Maximum allowed value (for validation)
+        min_value: Minimum allowed value (for setpoint validation)
+        max_value: Maximum allowed value (for setpoint validation)
+        min_valid_value: Minimum physically valid sensor value (filters invalid data)
+        max_valid_value: Maximum physically valid sensor value (filters invalid data)
         default: Default value
         enum_type: Enum class for enum registers
         converter: Function to convert raw value to engineering units
@@ -54,6 +56,8 @@ class RegisterDef:
     data_type: str = "int16"
     min_value: float | None = None
     max_value: float | None = None
+    min_valid_value: float | None = None
+    max_valid_value: float | None = None
     default: float | None = None
     enum_type: type | None = None
     converter: Callable[[int], float | int] | None = None
