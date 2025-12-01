@@ -45,7 +45,7 @@ class TestPackageImports:
         """Test that version is defined."""
         from kermi_xcenter import __version__
 
-        assert __version__ == "0.2.1"
+        assert __version__ == "0.2.2"
 
     def test_all_exports(self):
         """Test that __all__ contains all expected exports."""

@@ -50,13 +50,13 @@ class TestPowerConversions:
 
     def test_raw_to_power_small(self):
         """Test conversion of small power values."""
-        assert raw_to_power(315) == 3.15
-        assert raw_to_power(100) == 1.00
+        assert raw_to_power(71) == 7.1
+        assert raw_to_power(10) == 1.0
 
     def test_raw_to_power_large(self):
         """Test conversion of large power values."""
-        assert raw_to_power(1250) == 12.50
-        assert raw_to_power(5000) == 50.00
+        assert raw_to_power(125) == 12.5
+        assert raw_to_power(500) == 50.0
 
     def test_raw_to_power_zero(self):
         """Test conversion of zero power."""
@@ -68,14 +68,14 @@ class TestCOPConversions:
 
     def test_raw_to_cop_typical(self):
         """Test conversion of typical COP values."""
-        assert raw_to_cop(425) == 4.25
-        assert raw_to_cop(350) == 3.50
-        assert raw_to_cop(500) == 5.00
+        assert raw_to_cop(39) == 3.9
+        assert raw_to_cop(45) == 4.5
+        assert raw_to_cop(50) == 5.0
 
     def test_raw_to_cop_low(self):
         """Test conversion of low COP values."""
-        assert raw_to_cop(100) == 1.00
-        assert raw_to_cop(50) == 0.50
+        assert raw_to_cop(10) == 1.0
+        assert raw_to_cop(5) == 0.5
 
 
 class TestFlowRateConversions:
