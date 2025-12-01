@@ -47,7 +47,10 @@ def temperature_to_raw(temp: float) -> int:
 def raw_to_power(value: int) -> float:
     """Convert raw UINT16 register value to power in kW.
 
-    Kermi transmits power values as unsigned 16-bit integers in units of 0.01 kW.
+    Kermi transmits power values as unsigned 16-bit integers in units of 0.1 kW.
+
+    Note: The official specification states 0.01 kW units, but actual device
+    behavior uses 0.1 kW units, matching the temperature scaling convention.
 
     Args:
         value: Raw register value (UINT16)
@@ -56,18 +59,21 @@ def raw_to_power(value: int) -> float:
         Power in kilowatts
 
     Examples:
-        >>> raw_to_power(315)
-        3.15
-        >>> raw_to_power(1250)
+        >>> raw_to_power(71)
+        7.1
+        >>> raw_to_power(125)
         12.5
     """
-    return value / 100.0
+    return value / 10.0
 
 
 def raw_to_cop(value: int) -> float:
     """Convert raw UINT16 register value to COP (Coefficient of Performance).
 
-    Kermi transmits COP values as unsigned 16-bit integers in units of 0.01.
+    Kermi transmits COP values as unsigned 16-bit integers in units of 0.1.
+
+    Note: The official specification states 0.01 units, but actual device
+    behavior uses 0.1 units, matching the temperature scaling convention.
 
     Args:
         value: Raw register value (UINT16)
@@ -76,12 +82,12 @@ def raw_to_cop(value: int) -> float:
         COP value
 
     Examples:
-        >>> raw_to_cop(425)
-        4.25
-        >>> raw_to_cop(350)
-        3.5
+        >>> raw_to_cop(39)
+        3.9
+        >>> raw_to_cop(45)
+        4.5
     """
-    return value / 100.0
+    return value / 10.0
 
 
 def raw_to_flow_rate(value: int) -> float:

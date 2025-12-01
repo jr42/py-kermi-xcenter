@@ -52,12 +52,12 @@ class TestHeatPumpCOP:
     @pytest.mark.asyncio
     async def test_get_cop_total(self, kermi_client, mock_tcp_client, mock_modbus_response):
         """Test reading total COP."""
-        mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([425])
+        mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([39])
 
         heat_pump = HeatPump(kermi_client)
         cop = await heat_pump.get_cop_total()
 
-        assert cop == 4.25
+        assert cop == 3.9
         mock_tcp_client.read_holding_registers.assert_called_once_with(
             address=100, count=1, device_id=40
         )
@@ -65,12 +65,12 @@ class TestHeatPumpCOP:
     @pytest.mark.asyncio
     async def test_get_cop_heating(self, kermi_client, mock_tcp_client, mock_modbus_response):
         """Test reading heating COP."""
-        mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([350])
+        mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([35])
 
         heat_pump = HeatPump(kermi_client)
         cop = await heat_pump.get_cop_heating()
 
-        assert cop == 3.50
+        assert cop == 3.5
 
 
 class TestHeatPumpPower:
@@ -79,12 +79,12 @@ class TestHeatPumpPower:
     @pytest.mark.asyncio
     async def test_get_power_total(self, kermi_client, mock_tcp_client, mock_modbus_response):
         """Test reading total power."""
-        mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([1250])
+        mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([125])
 
         heat_pump = HeatPump(kermi_client)
         power = await heat_pump.get_power_total()
 
-        assert power == 12.50
+        assert power == 12.5
         mock_tcp_client.read_holding_registers.assert_called_once_with(
             address=104, count=1, device_id=40
         )
@@ -92,12 +92,12 @@ class TestHeatPumpPower:
     @pytest.mark.asyncio
     async def test_get_power_electrical(self, kermi_client, mock_tcp_client, mock_modbus_response):
         """Test reading electrical power."""
-        mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([315])
+        mock_tcp_client.read_holding_registers.return_value = mock_modbus_response([31])
 
         heat_pump = HeatPump(kermi_client)
         power = await heat_pump.get_power_electrical_total()
 
-        assert power == 3.15
+        assert power == 3.1
 
 
 class TestHeatPumpStatus:

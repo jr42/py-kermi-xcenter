@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2025-12-01
+
+### Fixed
+- **CRITICAL**: Power and COP conversion scaling corrected (values were 10x too low)
+  - Power values now correctly use 0.1 kW units (was incorrectly 0.01 kW)
+  - COP values now correctly use 0.1 units (was incorrectly 0.01 units)
+  - Actual device behavior uses 0.1 scaling, matching temperature convention
+  - Note: Official spec documents 0.01 units, but devices use 0.1 units
+
+### Changed
+- Updated README to refer to "Kermi x-center module" for clarity
+- Added hardware compatibility section (x-buffer combi pro + x-change dynamic pro ac 6 AW E)
+- Added Modbus activation requirement notice
+
+### Documentation
+- Conversion functions now document spec vs. reality discrepancy
+- Added note about operating hours scaling uncertainty
+- Updated all test expectations to match corrected conversion values
+
 ## [0.2.1] - 2025-11-27
 
 ### Fixed
@@ -56,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Comprehensive register definitions, type-safe enums, and automatic data conversions
 - Full test suite with 81% coverage
 
+[0.2.2]: https://github.com/jr42/py-kermi-xcenter/releases/tag/v0.2.2
 [0.2.1]: https://github.com/jr42/py-kermi-xcenter/releases/tag/v0.2.1
 [0.2.0]: https://github.com/jr42/py-kermi-xcenter/releases/tag/v0.2.0
 [0.1.0]: https://github.com/jr42/py-kermi-xcenter/releases/tag/v0.1.0

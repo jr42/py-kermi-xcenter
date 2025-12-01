@@ -16,7 +16,7 @@ Basic usage:
     ...         print(f"Outdoor: {temp}°C, COP: {cop}")
 """
 
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 from .client import KermiModbusClient
 from .exceptions import (

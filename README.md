@@ -1,12 +1,35 @@
-# Kermi Modbus
+# Kermi x-center Modbus Interface
 
-Async Python interface for Kermi heat pumps via Modbus (TCP/RTU).
+Async Python interface for Kermi heat pumps via x-center module using Modbus (TCP/RTU).
 
 [![CI](https://github.com/jr42/py-kermi-xcenter/workflows/CI/badge.svg)](https://github.com/jr42/py-kermi-xcenter/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/jr42/py-kermi-xcenter/branch/main/graph/badge.svg)](https://codecov.io/gh/jr42/py-kermi-xcenter)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
+## Requirements
+
+### Hardware Compatibility
+
+This library is tested with:
+- **x-center module**: Kermi's Modbus communication module
+- **Heat pump**: x-change dynamic pro ac 6 AW E (air/water heat pump)
+- **Buffer system**: x-buffer combi pro
+
+Other Kermi heat pump models with x-center module should also work.
+
+### Modbus Activation
+
+**IMPORTANT**: Modbus must be activated on your x-center module before use.
+
+Contact Kermi support to enable Modbus communication. For technical details, see `docs/Kermi.Modbus.TCP_RTU_Quick.Guide_DE.pdf`.
+
+The activation process typically involves:
+1. Accessing the x-center service menu
+2. Enabling Modbus TCP or RTU communication
+3. Configuring network settings (TCP) or serial parameters (RTU)
 
 ## Features
 
@@ -189,11 +212,16 @@ from kermi_xcenter import (
 All register values are automatically converted to engineering units:
 
 - **Temperatures**: Stored as INT16 in 0.1°C units, returned as `float` in °C
-- **Power**: Stored as UINT16 in 0.01 kW units, returned as `float` in kW
-- **COP**: Stored as UINT16 in 0.01 units, returned as `float`
+- **Power**: Stored as UINT16 in 0.1 kW units, returned as `float` in kW
+- **COP**: Stored as UINT16 in 0.1 units, returned as `float`
 - **Flow rate**: Stored as UINT16 in 0.1 l/min units, returned as `float` in l/min
+- **Operating hours**: Stored as UINT16, returned as `int` in hours
 - **Booleans**: Stored as UINT16 (0/1), returned as `bool`
 - **Enums**: Stored as UINT16, returned as typed enum instances
+
+**Note**: The official Modbus specification documents 0.01 units for power and COP,
+but actual device behavior uses 0.1 units (matching temperature scaling).
+Operating hours scaling is uncertain and may require future adjustment.
 
 ## Error Handling
 
