@@ -1,9 +1,24 @@
-"""Async Python interface for Kermi heat pumps via Modbus.
+"""Async Python interface for Kermi heat pumps via Modbus and HTTP.
 
 This package provides an async interface to control and monitor Kermi heat pump
-systems through the Modbus protocol (TCP or RTU).
+systems through the Modbus protocol (TCP or RTU) or HTTP API.
 
-Basic usage:
+HTTP is recommended for most use cases - it's more efficient and provides access
+to more datapoints. Modbus is still available for RTU connections or when HTTP
+is not accessible.
+
+HTTP usage (recommended):
+    >>> from kermi_xcenter import KermiHttpClient, HeatPump
+    >>>
+    >>> async def main():
+    ...     client = KermiHttpClient(host="192.168.1.100")  # No password needed by default
+    ...     heat_pump = HeatPump(client, unit_id=40)
+    ...
+    ...     async with client:
+    ...         temp = await heat_pump.get_outdoor_temperature()
+    ...         all_values = await heat_pump.get_all_values()  # Efficient bulk read
+
+Modbus usage:
     >>> from kermi_xcenter import KermiModbusClient, HeatPump
     >>>
     >>> async def main():
@@ -12,23 +27,26 @@ Basic usage:
     ...
     ...     async with client:
     ...         temp = await heat_pump.get_outdoor_temperature()
-    ...         cop = await heat_pump.get_cop_total()
-    ...         print(f"Outdoor: {temp}°C, COP: {cop}")
 """
 
 __version__ = "0.2.2"
 
 from .client import KermiModbusClient
 from .exceptions import (
+    AuthenticationError,
     ConnectionError,
     DataConversionError,
+    DatapointNotWritableError,
+    HttpError,
     KermiModbusError,
     ReadOnlyRegisterError,
     RegisterReadError,
     RegisterUnsupportedError,
     RegisterWriteError,
+    SessionExpiredError,
     ValidationError,
 )
+from .http import KermiHttpClient
 from .models import HeatPump, KermiDevice, StorageSystem, UniversalModule
 from .types import (
     BooleanValue,
@@ -44,14 +62,15 @@ from .types import (
 
 __all__ = [
     "__version__",
-    # Client
-    "KermiModbusClient",
+    # Clients
+    "KermiHttpClient",  # HTTP client (recommended)
+    "KermiModbusClient",  # Modbus client
     # Devices
     "KermiDevice",
     "HeatPump",
     "StorageSystem",
     "UniversalModule",
-    # Exceptions
+    # Exceptions - General
     "KermiModbusError",
     "ConnectionError",
     "DataConversionError",
@@ -60,6 +79,11 @@ __all__ = [
     "RegisterWriteError",
     "ValidationError",
     "ReadOnlyRegisterError",
+    # Exceptions - HTTP
+    "HttpError",
+    "AuthenticationError",
+    "SessionExpiredError",
+    "DatapointNotWritableError",
     # Enums
     "HeatPumpStatus",
     "HeatingCircuitStatus",

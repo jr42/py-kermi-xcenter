@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "kermi-xcenter"
 version = "0.2.2"
-description = "Async Python interface for Kermi heat pumps via Modbus"
+description = "Async Python interface for Kermi heat pumps via Modbus and HTTP"
 authors = [{name = "Jeremias Reith", email = "jr42@users.noreply.github.com"}]
 readme = "README.md"
 requires-python = ">=3.12"
@@ -23,6 +23,7 @@ keywords = ["kermi", "modbus", "heat-pump", "async", "iot"]
 
 dependencies = [
     "pymodbus>=3.6.0",
+    "aiohttp>=3.9.0",
 ]
 
 [project.optional-dependencies]
@@ -95,6 +96,10 @@ plugins = []
 
 [[tool.mypy.overrides]]
 module = "pymodbus.*"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "aiohttp.*"
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

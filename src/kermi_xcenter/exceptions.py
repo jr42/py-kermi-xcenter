@@ -129,3 +129,39 @@ class DataConversionError(KermiModbusError):
 
 # Protocol-agnostic alias for future compatibility
 KermiError = KermiModbusError
+
+
+# HTTP API Exceptions
+
+
+class HttpError(KermiError):
+    """Base exception for HTTP API errors."""
+
+
+class AuthenticationError(HttpError):
+    """Authentication failed (wrong password or missing when required)."""
+
+
+class SessionExpiredError(HttpError):
+    """HTTP session expired.
+
+    The session will be automatically re-established on the next request.
+    """
+
+
+class DatapointNotWritableError(KermiError):
+    """Attempted to write to a read-only or restricted datapoint.
+
+    This is raised when trying to write to:
+    - Read-only sensor values
+    - Dangerous/non-user-facing settings (pressure, calibration, etc.)
+    """
+
+    def __init__(self, datapoint_name: str) -> None:
+        """Initialize DatapointNotWritableError.
+
+        Args:
+            datapoint_name: Name of the datapoint that cannot be written
+        """
+        self.datapoint_name = datapoint_name
+        super().__init__(f"Datapoint '{datapoint_name}' is not writable")

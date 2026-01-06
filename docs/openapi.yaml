@@ -1,0 +1,432 @@
+openapi: 3.0.3
+info:
+  title: Kermi x-center HTTP API
+  description: |
+    HTTP REST API for Kermi x-center heat pump controller.
+
+    This API provides access to all connected devices (Heat Pump, Storage System, IFM)
+    and their datapoints. It supports device discovery, bulk reads, writes to settings,
+    and alarm management.
+
+    **Tested with:** x-center IFM firmware version 1.6.3.42
+  version: 1.0.0
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://{host}/api
+    description: Local x-center device
+    variables:
+      host:
+        default: xcenter.local
+        description: x-center hostname or IP address
+
+tags:
+  - name: Security
+    description: Authentication and session management
+  - name: Alarm
+    description: Alarm history and current alarms
+  - name: Datapoint
+    description: Datapoint reading and writing
+  - name: Favorite
+    description: Device and datapoint discovery
+  - name: Menu
+    description: Menu structure and bundles
+
+paths:
+  /Security/Login:
+    post:
+      tags: [Security]
+      summary: Authenticate with the x-center
+      description: |
+        Login using the device password.
+        Returns a session cookie for subsequent requests.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [Password]
+              properties:
+                Password:
+                  type: string
+                  description: Device password (typically last 4 digits of serial number)
+            example:
+              Password: "1234"
+      responses:
+        '200':
+          description: Login result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  isValid:
+                    type: boolean
+                    description: True if login successful
+                  changePassword:
+                    type: boolean
+                    description: True if password change required
+                  redirectUrl:
+                    type: string
+                    nullable: true
+
+  /Security/Logout:
+    post:
+      tags: [Security]
+      summary: End the current session
+      responses:
+        '200':
+          description: Logout successful
+
+  /Alarm/GetCurrentAlarms:
+    post:
+      tags: [Alarm]
+      summary: Get active alarms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: List of current alarms
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /Alarm/GetAlarmHistory:
+    post:
+      tags: [Alarm]
+      summary: Get alarm history
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Historical alarm records
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+  /Alarm/ClearCurrentAlarms:
+    post:
+      tags: [Alarm]
+      summary: Clear/acknowledge current alarms
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Alarms cleared
+
+  /Favorite/GetFavorites/{favoriteId}:
+    post:
+      tags: [Favorite]
+      summary: Get favorites/dashboard items
+      description: |
+        Retrieve favorite items configured in the system.
+        Use "00000000-0000-0000-0000-000000000000" for all favorites.
+        This endpoint is useful for device discovery.
+      parameters:
+        - name: favoriteId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          example: "00000000-0000-0000-0000-000000000000"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                WithDetails:
+                  type: boolean
+                  default: true
+                  description: Include datapoint details
+                OnlyHomeScreen:
+                  type: boolean
+                  default: false
+                  description: Only return home screen items
+      responses:
+        '200':
+          description: List of favorite items with device information
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FavoriteDatapoint'
+
+  /Menu/GetBundlesByCategory:
+    post:
+      tags: [Menu]
+      summary: Get all datapoints for a device
+      description: |
+        Returns all datapoints organized by bundle for a device.
+        This is the primary endpoint for reading device values.
+
+        Category 0: Read-only sensor values and status
+        Category 1: Writable settings and controls
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [DeviceId, Category]
+              properties:
+                DeviceId:
+                  type: string
+                  format: uuid
+                  description: Device UUID (use 00000000-... for IFM)
+                Category:
+                  type: integer
+                  enum: [0, 1]
+                  description: "0=sensors/status, 1=settings"
+            example:
+              DeviceId: "6dca4094-8955-49cf-9160-bdc1914ae7f0"
+              Category: 0
+      responses:
+        '200':
+          description: List of datapoint bundles with current values
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DatapointBundle'
+
+  /Menu/GetChildEntries:
+    post:
+      tags: [Menu]
+      summary: Get child menu entries
+      description: Navigate the menu tree structure
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [DeviceId, ParentMenuEntryId]
+              properties:
+                DeviceId:
+                  type: string
+                  format: uuid
+                ParentMenuEntryId:
+                  type: string
+                  format: uuid
+                  description: Use "00000000-..." for root level
+                WithDetails:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Menu entries and device information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MenuResponse'
+
+  /Datapoint/WriteValues:
+    post:
+      tags: [Datapoint]
+      summary: Write values to datapoints
+      description: |
+        Write one or more values to writable datapoints.
+        Only Category 1 datapoints can be written.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [DatapointValues]
+              properties:
+                DatapointValues:
+                  type: array
+                  items:
+                    type: object
+                    required: [DatapointConfigId, DeviceId, Value]
+                    properties:
+                      DatapointConfigId:
+                        type: string
+                        format: uuid
+                      DeviceId:
+                        type: string
+                        format: uuid
+                      Value:
+                        oneOf:
+                          - type: number
+                          - type: boolean
+                          - type: string
+            example:
+              DatapointValues:
+                - DatapointConfigId: "config-uuid"
+                  DeviceId: "device-uuid"
+                  Value: 50.0
+      responses:
+        '200':
+          description: Write successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponse'
+
+components:
+  schemas:
+    ApiResponse:
+      type: object
+      properties:
+        ResponseData:
+          description: Response payload (type varies by endpoint)
+        StatusCode:
+          type: integer
+          description: "0=success, non-zero=error"
+        ExceptionData:
+          type: object
+          nullable: true
+        DisplayText:
+          type: string
+          description: Error message for display
+        DetailedText:
+          type: string
+          description: Detailed error message
+
+    FavoriteDatapoint:
+      type: object
+      properties:
+        DeviceId:
+          type: string
+          format: uuid
+        DatapointConfig:
+          $ref: '#/components/schemas/DatapointConfig'
+
+    DatapointBundle:
+      type: object
+      properties:
+        DatapointBundleId:
+          type: string
+          format: uuid
+        Datapoints:
+          type: array
+          items:
+            $ref: '#/components/schemas/Datapoint'
+
+    Datapoint:
+      type: object
+      properties:
+        Config:
+          $ref: '#/components/schemas/DatapointConfig'
+        DatapointValue:
+          $ref: '#/components/schemas/DatapointValue'
+
+    DatapointConfig:
+      type: object
+      properties:
+        DatapointConfigId:
+          type: string
+          format: uuid
+        DisplayName:
+          type: string
+          description: Human-readable name
+        Description:
+          type: string
+        WellKnownName:
+          type: string
+          description: Internal identifier for mapping
+        Unit:
+          type: string
+          description: Engineering unit (e.g., "°C", "kW")
+        Address:
+          type: string
+          description: Modbus address info (e.g., "821|2|FloatSwapped|ReadHoldingRegisters")
+        Category:
+          type: integer
+          description: "0=read-only, 1=writable"
+        DeviceType:
+          type: integer
+          description: "0=IFM, 95=StorageSystem, 97=HeatPump"
+        MinValue:
+          type: number
+          nullable: true
+        MaxValue:
+          type: number
+          nullable: true
+
+    DatapointValue:
+      type: object
+      properties:
+        Value:
+          oneOf:
+            - type: number
+            - type: boolean
+            - type: string
+        DatapointConfigId:
+          type: string
+          format: uuid
+        DeviceId:
+          type: string
+          format: uuid
+        Flags:
+          type: integer
+
+    MenuResponse:
+      type: object
+      properties:
+        DeviceId:
+          type: string
+          format: uuid
+        ParentMenuEntryId:
+          type: string
+          format: uuid
+        MenuEntries:
+          type: array
+          items:
+            $ref: '#/components/schemas/MenuEntry'
+        Bundles:
+          type: array
+          items:
+            $ref: '#/components/schemas/DatapointBundle'
+        Devices:
+          type: array
+          items:
+            type: object
+
+    MenuEntry:
+      type: object
+      properties:
+        MenuEntryId:
+          type: string
+          format: uuid
+        DisplayName:
+          type: string
+        Description:
+          type: string
+          nullable: true
+        ParentMenuEntryId:
+          type: string
+          format: uuid
+        Sort:
+          type: integer
+        DeviceType:
+          type: integer
+        Hidden:
+          type: boolean
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: XCenter
+      description: Session cookie obtained from /Security/Login
+
+security:
+  - cookieAuth: []
