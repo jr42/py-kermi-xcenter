@@ -73,7 +73,8 @@ class TestHttpClientConnection:
 
             mock_login.assert_called_once()
             assert http_client._connected is True
-            assert len(http_client.devices) == 2
+            # 3 devices: IFM (always added) + 2 from favorites
+            assert len(http_client.devices) == 3
 
     @pytest.mark.asyncio
     async def test_disconnect(self, http_client):
@@ -148,9 +149,12 @@ class TestHttpClientDeviceDiscovery:
 
             await http_client.connect()
 
-            assert len(http_client.devices) == 1
-            assert http_client.devices[0].device_type == 97
-            assert http_client.devices[0].unit_id == 40  # HeatPump unit
+            # 2 devices: IFM (always added) + Heat Pump from favorites
+            assert len(http_client.devices) == 2
+            # IFM is first (unit 0), Heat Pump is second (unit 40)
+            assert http_client.devices[0].unit_id == 0  # IFM
+            assert http_client.devices[1].device_type == 97
+            assert http_client.devices[1].unit_id == 40  # HeatPump unit
 
     @pytest.mark.asyncio
     async def test_discover_storage_system(self, http_client):
@@ -179,10 +183,12 @@ class TestHttpClientDeviceDiscovery:
 
             await http_client.connect()
 
-            assert len(http_client.devices) == 2
-            # First storage is unit 50, second is unit 51
-            assert http_client.devices[0].unit_id == 50
-            assert http_client.devices[1].unit_id == 51
+            # 3 devices: IFM (always added) + 2 StorageSystems from favorites
+            assert len(http_client.devices) == 3
+            # IFM is first (unit 0), then storage units 50 and 51
+            assert http_client.devices[0].unit_id == 0  # IFM
+            assert http_client.devices[1].unit_id == 50
+            assert http_client.devices[2].unit_id == 51
 
     @pytest.mark.asyncio
     async def test_get_device_not_found(self, http_client):

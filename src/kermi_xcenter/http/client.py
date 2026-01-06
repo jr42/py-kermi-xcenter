@@ -134,6 +134,9 @@ class KermiHttpClient:
 
         The API returns FavoriteDatapoint items, from which we extract unique devices
         based on DeviceId and DeviceType from the datapoint config.
+
+        The x-center IFM (Interface Module) is always available as device ID
+        00000000-0000-0000-0000-000000000000 (unit 0).
         """
         data = await self._session.request(
             "Favorite/GetFavorites/00000000-0000-0000-0000-000000000000",
@@ -142,6 +145,18 @@ class KermiHttpClient:
 
         self._devices = []
         self._device_map = {}
+
+        # Always add the IFM device (the x-center gateway itself)
+        # It's always available at device ID 00000000-0000-0000-0000-000000000000
+        ifm_device = HttpDevice(
+            device_id="00000000-0000-0000-0000-000000000000",
+            device_type=0,  # IFM has device type 0
+            display_name="x-center IFM",
+            unit_id=0,
+        )
+        self._devices.append(ifm_device)
+        self._device_map[0] = ifm_device
+        logger.debug("Added IFM device (x-center gateway) at unit 0")
 
         if not data:
             return
@@ -337,8 +352,8 @@ class KermiHttpClient:
     # =========================================================================
 
     async def read_register(
-        self, address: int, unit_id: int, count: int = 1
-    ) -> int:  # noqa: ARG002
+        self, address: int, unit_id: int, count: int = 1  # noqa: ARG002
+    ) -> int:
         """Read a Modbus register (compatibility interface).
 
         This method provides compatibility with the Modbus client interface.
@@ -472,7 +487,7 @@ class KermiHttpClient:
         """Get device metadata (serial number, model, software version).
 
         Args:
-            unit_id: Modbus unit ID
+            unit_id: Modbus unit ID (0 for IFM, 40 for Heat Pump, 50/51 for Storage)
 
         Returns:
             DeviceInfo with serial number, model, and software version
@@ -480,23 +495,32 @@ class KermiHttpClient:
         values = await self.get_all_values(unit_id)
         device = self._get_device(unit_id)
 
-        # Get software version components
-        if unit_id == 40:  # Heat Pump
+        # Get software version and model based on device type
+        if unit_id == 0:  # IFM (x-center gateway)
+            software_version = str(values.get("ifm_software_version", ""))
+            serial_number = str(values.get("ifm_serial_number", ""))
+            model = "x-center IFM"
+        elif unit_id == 40:  # Heat Pump
             major = values.get("software_version_major", 0)
             minor = values.get("software_version_minor", 0)
             patch = values.get("software_version_patch", 0)
+            software_version = f"{major}.{minor}.{patch}"
+            serial_number = str(values.get("serial_number", ""))
+            model = (
+                values.get("heat_pump_model") or values.get("device_name") or device.display_name
+            )
         else:  # Storage System
             major = values.get("power_module_sw_major", 0)
             minor = values.get("power_module_sw_minor", 0)
             patch = values.get("power_module_sw_patch", 0)
-
-        # Get model name - prefer heat_pump_model or device_name if available
-        model = values.get("heat_pump_model") or values.get("device_name") or device.display_name
+            software_version = f"{major}.{minor}.{patch}"
+            serial_number = str(values.get("serial_number", ""))
+            model = values.get("device_type_name") or device.display_name
 
         return DeviceInfo(
-            serial_number=str(values.get("serial_number", "")),
+            serial_number=serial_number,
             model=str(model) if model else "",
-            software_version=f"{major}.{minor}.{patch}",
+            software_version=software_version,
         )
 
     # =========================================================================

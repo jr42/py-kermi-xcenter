@@ -147,6 +147,61 @@ WELLKNOWN_TO_ATTR: dict[str, str] = {
     "HeatingCircuit_WinterModeTemperature": "winter_mode_heating_on",
     "HeatingCircuit_CoolingOnTemperature": "cooling_mode_on",
     "HeatingCircuit_CoolingOffTemperature": "cooling_mode_off",
+    # =========================================================================
+    # IFM - x-center Interface Module (Unit 0) - Device Type 0
+    # The x-center gateway device itself
+    # =========================================================================
+    # System Info (Category 0 - read-only)
+    "SoftwareVersion": "ifm_software_version",
+    "OSVersion": "ifm_os_version",
+    "SystemSerialNo": "ifm_serial_number",
+    "HardwareKey": "ifm_hardware_key",
+    "LocalTime": "ifm_local_time",
+    "GlobalAlarmFlag": "ifm_alarm_status",
+    "System_DisplayVersion": "ifm_display_version",
+    "System_DisplayLastConnectionTime": "ifm_display_last_connection",
+    # Network Status (Category 0 - read-only)
+    "HomeNetOperationState": "ifm_home_lan_state",
+    "InternalNetOperationState": "ifm_internal_lan_state",
+    "RemoteControlConnected": "ifm_remote_connected",
+    # SmartGrid / EVU Inputs (Category 0 - read-only)
+    "DH_SGReady1": "ifm_evu_signal",
+    "DH_SGReady2": "ifm_sgready2_signal",
+    "DH_SmartGridState": "ifm_smartgrid_state",
+    # S0 Energy Meter (Category 0 - read-only)
+    "S0_1_W": "ifm_s0_power",
+    "S0_1_Interval": "ifm_s0_interval",
+    # Memory Info (Category 0 - read-only)
+    "System_MemoryFreeFlash": "ifm_memory_free_flash",
+    "System_MemoryFreeSDCard": "ifm_memory_free_sdcard",
+    # Time Components (Category 0 - read-only)
+    "YearLocal": "ifm_year",
+    "MonthLocal": "ifm_month",
+    "DayLocal": "ifm_day",
+    "DayOfWeekLocal": "ifm_day_of_week",
+    "HourLocal": "ifm_hour",
+    "MinuteLocal": "ifm_minute",
+    # LED & Output Control (Category 1 - writable)
+    "DH_Led1": "ifm_led1",
+    "DH_Led2": "ifm_led2",
+    "DH_Output1": "ifm_output1",
+    "DH_Output2": "ifm_output2",
+    "DH_SendErrorToOutputs": "ifm_error_output_enabled",
+    # S0 Energy Meter Settings (Category 1 - writable)
+    "S0_1_RatePerKwh": "ifm_s0_pulses_per_kwh",
+    "S0_1_SampleInterval": "ifm_s0_sample_interval",
+    # Network Settings (Category 1)
+    "SystemHostName": "ifm_hostname",
+    "HomeIPAddress": "ifm_ip_address",
+    "HomeNetmask": "ifm_netmask",
+    "HomeGateway": "ifm_gateway",
+    "HomeDNSServer": "ifm_dns_server",
+    "HomeEnableDhcp": "ifm_dhcp_enabled",
+    # Remote Access (Category 1)
+    "RemoteControlEnabled": "ifm_remote_enabled",
+    # System Control (Category 1 - dangerous, restricted)
+    "SystemRestartOS": "ifm_restart",
+    "SystemFactoryReset": "ifm_factory_reset",
 }
 
 # Reverse mapping: Python attribute name → WellKnownName
@@ -156,6 +211,7 @@ ATTR_TO_WELLKNOWN: dict[str, str] = {v: k for k, v in WELLKNOWN_TO_ATTR.items()}
 # Device type to default unit ID mapping
 # Note: StorageSystem (95) can be unit 50 (heating) or 51 (hot water)
 DEVICE_TYPE_TO_UNIT: dict[int, int] = {
+    0: 0,  # IFM (x-center gateway)
     97: 40,  # HeatPump
     95: 50,  # StorageSystem (default to heating, 51 for hot water)
 }
@@ -186,6 +242,15 @@ WRITABLE_DATAPOINTS: set[str] = {
     "external_heat_gen_mode_hot_water",
     # PV modulation
     "pv_modulation_power",
+    # IFM - LED & Output Control
+    "ifm_led1",
+    "ifm_led2",
+    "ifm_output1",
+    "ifm_output2",
+    "ifm_error_output_enabled",
+    # IFM - S0 Energy Meter Settings
+    "ifm_s0_pulses_per_kwh",
+    "ifm_s0_sample_interval",
 }
 
 
@@ -224,4 +289,15 @@ RESTRICTED_DATAPOINTS: set[str] = {
     "bivalence_parallel_temp_hot_water",
     "external_heat_gen_on_error_hot_water",
     "external_heat_gen_on_evu_lock_hot_water",
+    # IFM - Dangerous system controls
+    "ifm_restart",
+    "ifm_factory_reset",
+    # IFM - Network settings (could disconnect device)
+    "ifm_hostname",
+    "ifm_ip_address",
+    "ifm_netmask",
+    "ifm_gateway",
+    "ifm_dns_server",
+    "ifm_dhcp_enabled",
+    "ifm_remote_enabled",
 }
