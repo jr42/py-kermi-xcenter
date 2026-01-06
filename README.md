@@ -1,6 +1,6 @@
-# Kermi x-center Modbus Interface
+# Kermi x-center Python Interface
 
-Async Python interface for Kermi heat pumps via x-center module using Modbus (TCP/RTU).
+Async Python interface for Kermi heat pumps via x-center module. Supports both **HTTP API** (recommended) and **Modbus TCP/RTU**.
 
 [![CI](https://github.com/jr42/py-kermi-xcenter/workflows/CI/badge.svg)](https://github.com/jr42/py-kermi-xcenter/actions/workflows/ci.yml)
 [![codecov](https://codecov.io/gh/jr42/py-kermi-xcenter/branch/main/graph/badge.svg)](https://codecov.io/gh/jr42/py-kermi-xcenter)
@@ -9,44 +9,52 @@ Async Python interface for Kermi heat pumps via x-center module using Modbus (TC
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
+## Transport Options
+
+| Feature | HTTP API | Modbus |
+|---------|----------|--------|
+| **API Status** | Unofficial/Undocumented | Official (Kermi docs) |
+| **Setup Required** | None | Kermi support activation |
+| **Datapoints** | 250+ (all available) | ~90 (documented subset) |
+| **Efficiency** | 2 API calls for all data | ~30 register reads |
+| **Device Discovery** | Automatic | Manual configuration |
+| **Alarms** | Current + History | Not available |
+| **IFM Access** | Full (SmartGrid, I/O, S0) | Not available |
+
+**Recommendation:** Use HTTP for most use cases. Use Modbus only if HTTP is unavailable or you need real-time polling at high frequency.
+
 ## Requirements
 
 ### Hardware Compatibility
 
 This library is tested with:
-- **x-center module**: Kermi's Modbus communication module
+- **x-center IFM**: Firmware version 1.6.3.42
 - **Heat pump**: x-change dynamic pro ac 6 AW E (air/water heat pump)
-- **Buffer system**: x-buffer combi pro
+- **Buffer system**: x-buffer combi pro (Puffersystemmodul)
 
 Other Kermi heat pump models with x-center module should also work.
 
-### Modbus Activation
+### Modbus Activation (Modbus only)
 
 **IMPORTANT**: Modbus must be activated on your x-center module before use.
 
 Contact Kermi support to enable Modbus communication. For technical details, see `docs/Kermi.Modbus.TCP_RTU_Quick.Guide_DE.pdf`.
 
-The activation process typically involves:
-1. Accessing the x-center service menu
-2. Enabling Modbus TCP or RTU communication
-3. Configuring network settings (TCP) or serial parameters (RTU)
-
 ## Features
 
-- ✨ **Async/await support** - Modern async Python using `asyncio`
-- 🔌 **TCP and RTU** - Supports both Modbus TCP and RTU connections
-- 📊 **Three device types** - Heat Pump, Storage System, and Universal Module
-- 🎯 **Fully typed** - Complete type hints for better IDE support
-- 🛡️ **Type-safe enums** - Status and mode values as Python enums
-- 🔄 **Auto-conversion** - Automatic data type conversions (temperatures, power, COP, etc.)
-- ✅ **Validation** - Input validation with range checks
-- 🔁 **Retry logic** - Automatic retries with exponential backoff
-- 📝 **Well documented** - Comprehensive docstrings and examples
+- **Async/await support** - Modern async Python using `asyncio`
+- **Two transports** - HTTP API (recommended) or Modbus TCP/RTU
+- **Four device types** - IFM, Heat Pump, Storage System, and Universal Module
+- **Fully typed** - Complete type hints for better IDE support
+- **Type-safe enums** - Status and mode values as Python enums
+- **Auto-conversion** - Automatic data type conversions
+- **Validation** - Input validation with range checks
+- **Device discovery** - Automatic detection of connected devices (HTTP)
 
 ## Installation
 
 ```bash
-pip install -e .
+pip install kermi-xcenter
 ```
 
 For development:
@@ -57,47 +65,92 @@ pip install -e ".[dev]"
 
 ## Quick Start
 
+### HTTP API (Recommended)
+
+```python
+import asyncio
+from kermi_xcenter import KermiHttpClient
+
+async def main():
+    # Connect to x-center (password optional on some devices)
+    client = KermiHttpClient(host="192.168.1.100", password="1234")
+
+    async with client:
+        # Devices are auto-discovered
+        print(f"Found {len(client.devices)} devices")
+        for device in client.devices:
+            print(f"  - {device.display_name} (Unit {device.unit_id})")
+
+        # Get all values efficiently (2 API calls)
+        values = await client.get_all_values(unit_id=40)  # Heat Pump
+        print(f"Outdoor: {values.get('outdoor_temperature')}°C")
+        print(f"COP: {values.get('cop_total')}")
+        print(f"Power: {values.get('power_total')} kW")
+
+        # Get device info
+        info = await client.get_device_info(unit_id=40)
+        print(f"Model: {info.model}")
+        print(f"Serial: {info.serial_number}")
+        print(f"Firmware: {info.software_version}")
+
+        # Read IFM (x-center gateway) data
+        ifm_values = await client.get_all_values(unit_id=0)
+        print(f"SmartGrid State: {ifm_values.get('ifm_smartgrid_state')}")
+        print(f"S0 Power: {ifm_values.get('ifm_s0_power')} W")
+
+        # Check alarms
+        alarms = await client.get_current_alarms()
+        if alarms:
+            for alarm in alarms:
+                print(f"Alarm: {alarm.message}")
+
+asyncio.run(main())
+```
+
+### Modbus (Alternative)
+
 ```python
 import asyncio
 from kermi_xcenter import KermiModbusClient, HeatPump
 
 async def main():
-    # Create client
     client = KermiModbusClient(host="192.168.1.100", port=502)
-
-    # Create heat pump device (unit ID 40)
     heat_pump = HeatPump(client)
 
-    # Connect and read values
     async with client:
-        # Read temperatures
         outdoor_temp = await heat_pump.get_outdoor_temperature()
-        supply_temp = await heat_pump.get_supply_temp_heat_pump()
-
-        # Read COP (Coefficient of Performance)
         cop = await heat_pump.get_cop_total()
-
-        # Read power
-        power_thermal = await heat_pump.get_power_total()
-        power_electrical = await heat_pump.get_power_electrical_total()
-
-        # Get status
         status = await heat_pump.get_heat_pump_status()
 
         print(f"Outdoor: {outdoor_temp}°C")
-        print(f"Supply:  {supply_temp}°C")
-        print(f"COP:     {cop}")
-        print(f"Power:   {power_thermal} kW (thermal), {power_electrical} kW (electrical)")
-        print(f"Status:  {status.name}")
+        print(f"COP: {cop}")
+        print(f"Status: {status.name}")
 
 asyncio.run(main())
 ```
 
 ## Supported Devices
 
-### Heat Pump (Unit ID 40)
+### IFM - x-center Interface Module (Unit 0, HTTP only)
 
-Main heat pump control with access to:
+The x-center gateway device itself:
+- System info (serial, firmware, OS version)
+- Network status (LAN states, IP, remote connection)
+- SmartGrid/EVU signals (EVU, SGReady2, SmartGrid state)
+- Digital I/O (LED1, LED2, Output1, Output2)
+- S0 energy meter (power, pulse counter)
+
+```python
+# HTTP only
+values = await client.get_all_values(unit_id=0)
+smartgrid = values.get('ifm_smartgrid_state')  # 0-4
+evu_active = values.get('ifm_evu_signal')       # True/False
+s0_power = values.get('ifm_s0_power')           # Watts
+```
+
+### Heat Pump (Unit 40)
+
+Main heat pump control:
 - Energy source temperatures
 - Heat pump circuit (supply, return, flow rate)
 - COP values (total, heating, hot water, cooling)
@@ -107,11 +160,14 @@ Main heat pump control with access to:
 - PV modulation controls
 
 ```python
-from kermi_xcenter import HeatPump
+# HTTP
+values = await client.get_all_values(unit_id=40)
+cop = values.get('cop_total')
 
+# Modbus
+from kermi_xcenter import HeatPump
 heat_pump = HeatPump(client, unit_id=40)
 cop = await heat_pump.get_cop_total()
-await heat_pump.set_pv_modulation_power(2000)  # 2000W
 ```
 
 ### Storage System (Units 50/51)
@@ -120,41 +176,66 @@ Heating storage (50) and hot water storage (51):
 - Storage temperatures (heating, cooling, hot water)
 - Heating circuit control
 - Operating modes and energy settings
-- Season selection
 - External heat generator control
-- Temperature sensors
-- Operating hours
 
 ```python
-from kermi_xcenter import StorageSystem, EnergyMode
+# HTTP
+heating_values = await client.get_all_values(unit_id=50)
+hot_water_values = await client.get_all_values(unit_id=51)
 
+# Modbus
+from kermi_xcenter import StorageSystem
 heating_storage = StorageSystem(client, unit_id=50)
 hot_water_storage = StorageSystem(client, unit_id=51)
-
-temp = await heating_storage.get_heating_actual()
-await hot_water_storage.set_hot_water_setpoint_constant(50.0)
-await heating_storage.set_heating_circuit_energy_mode(EnergyMode.ECO)
 ```
 
-### Universal Module (Unit ID 30)
+### Universal Module (Unit 30, Modbus only)
 
-Additional heating circuits with:
+Additional heating circuits:
 - Heating circuit control and status
 - Operating modes and energy settings
-- Season selection
-- Temperature sensors
-- Operating hours
 
 ```python
-from kermi_xcenter import UniversalModule, EnergyMode
-
+from kermi_xcenter import UniversalModule
 universal = UniversalModule(client, unit_id=30)
-await universal.set_energy_mode(EnergyMode.COMFORT)
+```
+
+## Writing Values
+
+### HTTP
+
+```python
+# Set hot water boost
+await client.set_value("hot_water_boost_active", True, unit_id=51)
+await client.set_value("hot_water_boost_setpoint", 55.0, unit_id=51)
+
+# Control IFM outputs
+await client.set_value("ifm_led1", True, unit_id=0)
+await client.set_value("ifm_output1", False, unit_id=0)
+```
+
+### Modbus
+
+```python
+await heat_pump.set_pv_modulation_power(2000)  # 2000W
+await storage.set_hot_water_setpoint_constant(50.0)
+await storage.set_heating_circuit_energy_mode(EnergyMode.ECO)
 ```
 
 ## Connection Types
 
-### TCP Connection
+### HTTP
+
+```python
+client = KermiHttpClient(
+    host="192.168.1.100",
+    password="1234",      # Optional on some devices
+    port=80,              # Default HTTP port
+    timeout=10.0
+)
+```
+
+### Modbus TCP
 
 ```python
 client = KermiModbusClient(
@@ -165,7 +246,7 @@ client = KermiModbusClient(
 )
 ```
 
-### RTU Connection
+### Modbus RTU
 
 ```python
 client = KermiModbusClient(
@@ -178,22 +259,22 @@ client = KermiModbusClient(
 
 ## Examples
 
-See the `examples/` directory for complete examples:
+See the `examples/` directory:
 
-- **`basic_monitoring.py`** - Read temperatures, COP, power, and status
-- **`pv_modulation.py`** - Control PV modulation for solar integration
-- **`storage_control.py`** - Control heating and hot water storage
-- **`continuous_monitoring.py`** - Continuous monitoring with periodic updates
+- **`http_monitoring.py`** - HTTP client with device discovery and bulk reads
+- **`basic_monitoring.py`** - Modbus: Read temperatures, COP, power, and status
+- **`pv_modulation.py`** - Modbus: Control PV modulation for solar integration
+- **`storage_control.py`** - Modbus: Control heating and hot water storage
+- **`continuous_monitoring.py`** - Modbus: Continuous monitoring with periodic updates
 
 Run an example:
 
 ```bash
+python examples/http_monitoring.py --host 192.168.1.100 --password 1234
 python examples/basic_monitoring.py
 ```
 
 ## Data Types and Enums
-
-The library provides type-safe enums for all status and mode values:
 
 ```python
 from kermi_xcenter import (
@@ -207,25 +288,7 @@ from kermi_xcenter import (
 )
 ```
 
-## Automatic Data Conversion
-
-All register values are automatically converted to engineering units:
-
-- **Temperatures**: Stored as INT16 in 0.1°C units, returned as `float` in °C
-- **Power**: Stored as UINT16 in 0.1 kW units, returned as `float` in kW
-- **COP**: Stored as UINT16 in 0.1 units, returned as `float`
-- **Flow rate**: Stored as UINT16 in 0.1 l/min units, returned as `float` in l/min
-- **Operating hours**: Stored as UINT16, returned as `int` in hours
-- **Booleans**: Stored as UINT16 (0/1), returned as `bool`
-- **Enums**: Stored as UINT16, returned as typed enum instances
-
-**Note**: The official Modbus specification documents 0.01 units for power and COP,
-but actual device behavior uses 0.1 units (matching temperature scaling).
-Operating hours scaling is uncertain and may require future adjustment.
-
 ## Error Handling
-
-The library provides custom exceptions for different error scenarios:
 
 ```python
 from kermi_xcenter import (
@@ -234,45 +297,32 @@ from kermi_xcenter import (
     RegisterReadError,         # Read operation failed
     RegisterWriteError,        # Write operation failed
     ValidationError,           # Value out of range
-    ReadOnlyRegisterError,     # Attempted write to read-only register
+    HttpError,                 # HTTP API error
+    AuthenticationError,       # HTTP authentication failed
+    DatapointNotWritableError, # Attempted write to read-only datapoint
 )
 
 try:
-    temp = await heat_pump.get_outdoor_temperature()
-except RegisterReadError as e:
-    print(f"Failed to read register {e.address}: {e}")
-except ConnectionError as e:
-    print(f"Connection failed: {e}")
+    values = await client.get_all_values(unit_id=40)
+except HttpError as e:
+    print(f"HTTP API error: {e}")
+except AuthenticationError as e:
+    print(f"Authentication failed: {e}")
 ```
-
-## Register Documentation
-
-All register names use English for code clarity, with German equivalents preserved in docstrings:
-
-```python
-# English method name
-outdoor_temp = await heat_pump.get_outdoor_temperature()
-
-# Docstring includes German reference:
-# """Get outdoor temperature in °C.
-#
-# Kermi code: BOT, Register: 3
-# German: Außentemperaturfühler
-# """
-```
-
-Complete register specification: [`docs/modbus_specification.md`](docs/modbus_specification.md)
 
 ## Architecture
 
 ```
 kermi_xcenter/
 ├── client.py              # Async Modbus client (TCP/RTU)
-├── registers.py           # Register definitions for all modules
+├── http/
+│   ├── client.py          # Async HTTP client
+│   ├── session.py         # HTTP session management
+│   ├── mapping.py         # WellKnownName to attribute mapping
+│   └── models.py          # HTTP data models
+├── registers.py           # Modbus register definitions
 ├── types.py               # Enums and type aliases
 ├── exceptions.py          # Custom exceptions
-├── utils/
-│   └── conversions.py     # Data type conversion functions
 └── models/
     ├── base.py            # Base device class
     ├── heat_pump.py       # Heat pump (unit 40)
@@ -280,56 +330,38 @@ kermi_xcenter/
     └── universal_module.py # Universal module (unit 30)
 ```
 
+## Documentation
+
+- [HTTP API Specification](docs/http_specification.md) - HTTP endpoints and datapoints
+- [OpenAPI Specification](docs/openapi.yaml) - Machine-readable API spec
+- [Modbus Specification](docs/modbus_specification.md) - Complete register maps
+- [Project Plan](docs/project_plan.md) - Architecture and design decisions
+
 ## Development
 
 ### Setup
 
 ```bash
-# Create virtual environment
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install with dev dependencies
+source venv/bin/activate
 pip install -e ".[dev]"
-
-# Install pre-commit hooks
 pre-commit install
 ```
 
 ### Code Quality
 
 ```bash
-# Format code
 black src/ tests/ examples/
-
-# Lint
 ruff check src/ tests/ examples/
-
-# Type check
 mypy src/
-```
-
-### Testing
-
-```bash
-# Run tests
 pytest
-
-# With coverage
-pytest --cov=kermi_xcenter --cov-report=html
 ```
-
-## Modbus Function Codes
-
-The library supports the following Modbus function codes:
-- **0x03** - Read Holding Registers
-- **0x06** - Write Single Register
-- **0x10** - Write Multiple Registers
 
 ## Requirements
 
 - Python 3.12+
 - pymodbus >= 3.6.0
+- aiohttp >= 3.9.0
 
 ## License
 
@@ -349,11 +381,6 @@ Contributions are welcome! Please:
 
 This library is not affiliated with or endorsed by Kermi GmbH.
 
-## Documentation
-
-- [Modbus Specification](docs/modbus_specification.md) - Complete register maps
-- [Project Plan](docs/project_plan.md) - Architecture and design decisions
-
 ## Support
 
 For issues and questions:
@@ -363,7 +390,33 @@ For issues and questions:
 
 ## Changelog
 
-### 0.1.0 (2025-01-XX)
+### 0.3.0 (Unreleased)
+
+- Added HTTP API client (`KermiHttpClient`) as recommended transport
+- Added IFM device support (SmartGrid, I/O, S0 meter)
+- Added automatic device discovery
+- Added efficient bulk reads (all datapoints in 2 API calls)
+- Added alarm management (current and history)
+- Added 40+ IFM datapoint mappings
+- Added 180+ Heat Pump and Storage datapoint mappings
+- Added HTTP API documentation and OpenAPI spec
+- Tested with x-center IFM firmware 1.6.3.42
+
+### 0.2.2 (2025-12-01)
+
+- Fixed power and COP scaling (10x correction)
+
+### 0.2.1 (2025-11-27)
+
+- Added Codecov integration
+- Fixed cleanup errors from malformed frames
+
+### 0.2.0 (2025-11-27)
+
+- Return None for unavailable registers (Pythonic API)
+- Added resilient error handling for device firmware variations
+
+### 0.1.0 (2025-11-27)
 
 - Initial release
 - Async/await support for all operations
@@ -372,4 +425,19 @@ For issues and questions:
 - Type-safe enums for all status and mode values
 - Automatic data conversions
 - TCP and RTU connection support
-- Comprehensive examples
+
+---
+
+## Disclaimer
+
+**This software is provided "as-is" without any warranty of any kind, express or implied.**
+
+- The **HTTP API implementation** interfaces with an unofficial, undocumented API of the Kermi x-center. This API may change without notice in firmware updates, potentially breaking functionality.
+
+- The **Modbus implementation** is based on Kermi's official Modbus documentation.
+
+- This library is not affiliated with, endorsed by, or supported by Kermi GmbH.
+
+- Use at your own risk. The authors are not responsible for any damage to your equipment, loss of warranty, or other issues that may arise from using this software.
+
+- Always ensure you have appropriate backups and understand the implications before writing values to your heat pump system.
