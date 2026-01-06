@@ -29,7 +29,7 @@ Modbus usage:
     ...         temp = await heat_pump.get_outdoor_temperature()
 """
 
-__version__ = "0.2.2"
+__version__ = "0.3.0"
 
 from .client import KermiModbusClient
 from .exceptions import (

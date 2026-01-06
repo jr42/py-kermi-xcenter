@@ -390,7 +390,7 @@ For issues and questions:
 
 ## Changelog
 
-### 0.3.0 (Unreleased)
+### 0.3.0 (2026-01-06)
 
 - Added HTTP API client (`KermiHttpClient`) as recommended transport
 - Added IFM device support (SmartGrid, I/O, S0 meter)
