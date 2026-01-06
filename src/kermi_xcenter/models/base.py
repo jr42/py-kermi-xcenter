@@ -1,9 +1,10 @@
-"""Base device class for all Kermi Modbus devices."""
+"""Base device class for all Kermi devices (Modbus and HTTP)."""
+
+from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
 
-from ..client import KermiModbusClient
 from ..exceptions import (
     ConnectionError,
     DataConversionError,
@@ -14,24 +15,65 @@ from ..exceptions import (
 from ..registers import RegisterDef
 from ..types import UnitId
 
+if TYPE_CHECKING:
+    from ..client import KermiModbusClient
+    from ..http.client import KermiHttpClient
+    from ..http.models import DeviceInfo
+
 logger = logging.getLogger(__name__)
 
 
+@runtime_checkable
+class KermiClientProtocol(Protocol):
+    """Protocol defining the interface for Kermi clients.
+
+    Both KermiModbusClient and KermiHttpClient implement this protocol,
+    allowing device models to work with either client type.
+    """
+
+    async def connect(self) -> None:
+        """Connect to the device."""
+        ...
+
+    async def disconnect(self) -> None:
+        """Disconnect from the device."""
+        ...
+
+    async def is_connected(self) -> bool:
+        """Check if connected."""
+        ...
+
+    async def read_register(self, address: int, unit_id: int, count: int = 1) -> int:
+        """Read a register value."""
+        ...
+
+    async def write_register(self, address: int, value: int, unit_id: int) -> None:
+        """Write a register value."""
+        ...
+
+    async def reconnect(self) -> None:
+        """Reconnect to the device."""
+        ...
+
+
 class KermiDevice:
-    """Base class for Kermi Modbus devices.
+    """Base class for Kermi devices (Modbus and HTTP).
 
     Provides common functionality for reading and writing registers
     with automatic data type conversion and validation.
 
+    Works with both KermiModbusClient and KermiHttpClient, allowing
+    the same device model code to be used with either transport.
+
     Attributes:
-        client: Modbus client instance
+        client: Client instance (Modbus or HTTP)
         unit_id: Modbus unit ID for this device
         registers: Dictionary of register definitions for this device
     """
 
     def __init__(
         self,
-        client: KermiModbusClient,
+        client: KermiModbusClient | KermiHttpClient,
         unit_id: UnitId,
         registers: dict[str, RegisterDef],
         capabilities: dict[str, bool] | None = None,
@@ -39,7 +81,7 @@ class KermiDevice:
         """Initialize the device.
 
         Args:
-            client: Modbus client instance
+            client: Client instance (KermiModbusClient or KermiHttpClient)
             unit_id: Modbus unit ID
             registers: Register definitions for this device
             capabilities: Optional pre-discovered capabilities dict mapping register
@@ -51,6 +93,10 @@ class KermiDevice:
         self.unit_id = unit_id
         self.registers = registers
         self._capabilities: dict[str, bool] = capabilities.copy() if capabilities else {}
+
+    def _is_http_client(self) -> bool:
+        """Check if using HTTP client."""
+        return hasattr(self.client, "get_all_values")
 
     async def _read_register(self, register: RegisterDef) -> float | int | bool | None:
         """Read a register and convert to engineering units.
@@ -350,3 +396,42 @@ class KermiDevice:
             )
 
         return values
+
+    # =========================================================================
+    # HTTP-Only Methods
+    # =========================================================================
+
+    async def get_all_values(self) -> dict[str, Any]:
+        """Get all datapoint values efficiently (HTTP only).
+
+        This method is only available when using KermiHttpClient.
+        It fetches all datapoints in 2 API calls, making it much more
+        efficient than reading registers individually.
+
+        Returns:
+            Dictionary mapping attribute names to values
+
+        Raises:
+            AttributeError: If using Modbus client (use get_all_readable_values instead)
+        """
+        if not self._is_http_client():
+            raise AttributeError(
+                "get_all_values() is only available with KermiHttpClient. "
+                "Use get_all_readable_values() for Modbus."
+            )
+        return await self.client.get_all_values(self.unit_id)  # type: ignore[union-attr]
+
+    async def get_device_info(self) -> DeviceInfo:
+        """Get device metadata (serial number, model, software version).
+
+        This method is only available when using KermiHttpClient.
+
+        Returns:
+            DeviceInfo with serial number, model, and software version
+
+        Raises:
+            AttributeError: If using Modbus client
+        """
+        if not self._is_http_client():
+            raise AttributeError("get_device_info() is only available with KermiHttpClient.")
+        return await self.client.get_device_info(self.unit_id)  # type: ignore[union-attr]

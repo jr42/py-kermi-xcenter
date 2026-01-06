@@ -53,11 +53,15 @@ class TestPackageImports:
 
         expected = {
             "__version__",
+            # Clients
+            "KermiHttpClient",
             "KermiModbusClient",
+            # Devices
             "KermiDevice",
             "HeatPump",
             "StorageSystem",
             "UniversalModule",
+            # Exceptions - General
             "KermiModbusError",
             "ConnectionError",
             "DataConversionError",
@@ -66,6 +70,12 @@ class TestPackageImports:
             "RegisterWriteError",
             "ValidationError",
             "ReadOnlyRegisterError",
+            # Exceptions - HTTP
+            "HttpError",
+            "AuthenticationError",
+            "SessionExpiredError",
+            "DatapointNotWritableError",
+            # Enums
             "HeatPumpStatus",
             "HeatingCircuitStatus",
             "OperatingMode",
@@ -78,3 +88,23 @@ class TestPackageImports:
         }
 
         assert set(__all__) == expected
+
+    def test_import_http_client(self):
+        """Test importing HTTP client."""
+        from kermi_xcenter import KermiHttpClient
+
+        assert KermiHttpClient is not None
+
+    def test_import_http_exceptions(self):
+        """Test importing HTTP exceptions."""
+        from kermi_xcenter import (
+            AuthenticationError,
+            DatapointNotWritableError,
+            HttpError,
+            SessionExpiredError,
+        )
+
+        assert HttpError is not None
+        assert AuthenticationError is not None
+        assert SessionExpiredError is not None
+        assert DatapointNotWritableError is not None
