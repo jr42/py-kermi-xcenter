@@ -9,7 +9,15 @@ from kermi_xcenter import (
     HttpError,
     KermiHttpClient,
 )
-from kermi_xcenter.http.models import Alarm, DatapointConfig, DeviceInfo, HttpDevice
+from kermi_xcenter.http.models import (
+    Alarm,
+    DatapointConfig,
+    DeviceInfo,
+    HttpDevice,
+    Scene,
+    SceneOverview,
+    SceneState,
+)
 
 
 class TestHttpClientCreation:
@@ -523,3 +531,153 @@ class TestHttpClientModbusCompatibility:
 
             with pytest.raises(RegisterReadError, match="Register address not found"):
                 await http_client.read_register(address=999, unit_id=40)
+
+
+class TestHttpClientScenes:
+    """Test scene functionality."""
+
+    @pytest.fixture
+    def http_client(self):
+        """Create HTTP client instance."""
+        return KermiHttpClient(host="192.168.1.100")
+
+    @pytest.mark.asyncio
+    async def test_get_scenes(self, http_client):
+        """Test getting all scenes."""
+        with patch.object(http_client._session, "request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = [
+                {
+                    "SceneId": "scene-1",
+                    "DisplayName": "Heizen Tag",
+                    "Description": "Day heating schedule",
+                    "Priority": 7,
+                    "Enabled": True,
+                    "LastUpdateUtc": "2024-06-29T14:45:24Z",
+                },
+                {
+                    "SceneId": "scene-2",
+                    "DisplayName": "Nacht Modus",
+                    "Description": None,
+                    "Priority": 10,
+                    "Enabled": False,
+                    "LastUpdateUtc": "2024-07-01T10:00:00Z",
+                },
+            ]
+
+            scenes = await http_client.get_scenes()
+
+            mock_request.assert_called_once_with(
+                "Scene/GetScenesByDeviceId",
+                {"DeviceId": "00000000-0000-0000-0000-000000000000"},
+            )
+            assert len(scenes) == 2
+            assert isinstance(scenes[0], SceneOverview)
+            assert scenes[0].scene_id == "scene-1"
+            assert scenes[0].display_name == "Heizen Tag"
+            assert scenes[0].enabled is True
+            assert scenes[1].enabled is False
+
+    @pytest.mark.asyncio
+    async def test_get_scenes_empty(self, http_client):
+        """Test getting scenes when none exist."""
+        with patch.object(http_client._session, "request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = []
+
+            scenes = await http_client.get_scenes()
+
+            assert scenes == []
+
+    @pytest.mark.asyncio
+    async def test_get_scene_by_id(self, http_client):
+        """Test getting a full scene by ID."""
+        with patch.object(http_client._session, "request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = {
+                "SceneId": "scene-1",
+                "DisplayName": "Heizen Tag",
+                "Description": "Day heating",
+                "Priority": 7,
+                "Enabled": True,
+                "LastUpdateUtc": "2024-06-29T14:45:24Z",
+                "ConditionTreeData": {
+                    "Id": "condition-1",
+                    "Enabled": True,
+                    "ConditionsAndData": [],
+                },
+                "ActionDataForSerialization": [
+                    {
+                        "Data": {
+                            "$type": "BMS.Shared.SceneData.Actions.SceneDataActionSetDatapoints",
+                            "Enabled": True,
+                        }
+                    }
+                ],
+            }
+
+            scene = await http_client.get_scene("scene-1")
+
+            mock_request.assert_called_once_with(
+                "Scene/GetSceneById",
+                {"SceneId": "scene-1"},
+            )
+            assert isinstance(scene, Scene)
+            assert scene.scene_id == "scene-1"
+            assert scene.display_name == "Heizen Tag"
+            assert scene.condition_tree_data["Id"] == "condition-1"
+            assert len(scene.action_data) == 1
+
+    @pytest.mark.asyncio
+    async def test_get_scene_not_found(self, http_client):
+        """Test getting a scene that doesn't exist."""
+        with patch.object(http_client._session, "request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = None
+
+            with pytest.raises(HttpError, match="Scene scene-999 not found"):
+                await http_client.get_scene("scene-999")
+
+    @pytest.mark.asyncio
+    async def test_get_scene_state(self, http_client):
+        """Test getting scene execution state."""
+        with patch.object(http_client._session, "request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = {
+                "SceneId": "scene-1",
+                "DisplayName": "Heizen Tag",
+                "SceneState": {
+                    "ConditionIsTrue": True,
+                    "ActionIsRunning": False,
+                    "LastConditionCheckUtc": "2024-07-15T12:00:00Z",
+                    "ExecutionTimeMs": 150,
+                },
+            }
+
+            state = await http_client.get_scene_state("scene-1")
+
+            mock_request.assert_called_once_with(
+                "Scene/GetSceneOverviewById",
+                {"SceneId": "scene-1"},
+            )
+            assert isinstance(state, SceneState)
+            assert state.condition_is_true is True
+            assert state.action_is_running is False
+            assert state.execution_time_ms == 150
+
+    @pytest.mark.asyncio
+    async def test_get_scene_state_not_found(self, http_client):
+        """Test getting state for non-existent scene."""
+        with patch.object(http_client._session, "request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = None
+
+            with pytest.raises(HttpError, match="Scene scene-999 not found"):
+                await http_client.get_scene_state("scene-999")
+
+    @pytest.mark.asyncio
+    async def test_execute_scene(self, http_client):
+        """Test executing a scene."""
+        with patch.object(http_client._session, "request", new_callable=AsyncMock) as mock_request:
+            mock_request.return_value = {"StatusCode": 0}
+
+            await http_client.execute_scene("scene-1")
+
+            mock_request.assert_called_once_with(
+                "Scene/ExecuteScene",
+                {"SceneId": "scene-1"},
+            )

@@ -200,6 +200,111 @@ Content-Type: application/json
 }
 ```
 
+## Scenes (Automation)
+
+Scenes are automation rules that execute actions when conditions are met. The API provides endpoints to list, read, and execute scenes.
+
+### Get All Scenes
+
+Use `GetScenesByDeviceId` with the IFM device ID to list all scenes:
+
+```http
+POST /api/Scene/GetScenesByDeviceId
+Content-Type: application/json
+
+{
+  "DeviceId": "00000000-0000-0000-0000-000000000000"
+}
+```
+
+**Response:**
+```json
+[
+  {
+    "SceneId": "f29e1596-5efb-4b5e-8674-5baf2b65a377",
+    "DisplayName": "PV Modulation",
+    "Description": null,
+    "Priority": 100,
+    "Enabled": true,
+    "LastUpdate": "2024-01-15T10:30:00Z",
+    "State": {
+      "ConditionIsTrue": false,
+      "ActionIsRunning": false,
+      "LastCheck": "2024-01-15T12:00:00Z",
+      "ExecutionTimeMs": 15
+    }
+  }
+]
+```
+
+**Note:** `GetAllScenes` returns 405 on local devices (cloud-only). Use `GetScenesByDeviceId` with IFM device ID as workaround.
+
+### Get Scene Details
+
+```http
+POST /api/Scene/GetSceneById
+Content-Type: application/json
+
+{
+  "SceneId": "f29e1596-5efb-4b5e-8674-5baf2b65a377"
+}
+```
+
+Returns full scene with conditions and actions:
+
+```json
+{
+  "SceneId": "f29e1596-5efb-4b5e-8674-5baf2b65a377",
+  "DisplayName": "PV Modulation",
+  "Priority": 100,
+  "Enabled": true,
+  "ConditionTreeData": {
+    "NodeType": 0,
+    "Children": [...]
+  },
+  "ActionData": [
+    {
+      "ActionType": 0,
+      "DatapointConfigId": "...",
+      "Value": 1000
+    }
+  ]
+}
+```
+
+### Get Scene State
+
+```http
+POST /api/Scene/GetSceneOverviewById
+Content-Type: application/json
+
+{
+  "SceneId": "f29e1596-5efb-4b5e-8674-5baf2b65a377"
+}
+```
+
+Returns scene metadata with current execution state (whether conditions are met, whether actions are running).
+
+### Execute Scene
+
+Triggers a scene's actions immediately, regardless of conditions:
+
+```http
+POST /api/Scene/ExecuteScene
+Content-Type: application/json
+
+{
+  "SceneId": "f29e1596-5efb-4b5e-8674-5baf2b65a377"
+}
+```
+
+### Create/Update/Delete Scenes
+
+The following endpoints exist but are **not implemented in this library** (read + execute only):
+
+- `POST /api/Scene/AddOrUpdateScene` - Create or update a scene
+- `POST /api/Scene/RemoveScene` - Delete a scene
+
 ## Key Datapoint Mappings
 
 ### IFM (Unit 0)

@@ -21,7 +21,7 @@ from .mapping import (
     WELLKNOWN_TO_ATTR,
     WRITABLE_DATAPOINTS,
 )
-from .models import Alarm, DatapointConfig, DeviceInfo, HttpDevice
+from .models import Alarm, DatapointConfig, DeviceInfo, HttpDevice, Scene, SceneOverview, SceneState
 from .session import HttpSession
 
 logger = logging.getLogger(__name__)
@@ -595,3 +595,160 @@ class KermiHttpClient:
         await self._session.close()
         await self._session.login()
         logger.debug("HTTP session reconnected")
+
+    # =========================================================================
+    # Scenes
+    # =========================================================================
+
+    async def get_scenes(self) -> list[SceneOverview]:
+        """Get all scenes configured on the device.
+
+        Uses GetScenesByDeviceId with the IFM device ID as a workaround,
+        since GetAllScenes returns 405 on local devices.
+
+        Returns:
+            List of SceneOverview objects with scene metadata
+
+        Example:
+            ```python
+            scenes = await client.get_scenes()
+            for scene in scenes:
+                print(f"{scene.display_name}: enabled={scene.enabled}")
+            ```
+        """
+        # Use IFM device ID to get all scenes (workaround for GetAllScenes 405)
+        data = await self._session.request(
+            "Scene/GetScenesByDeviceId",
+            {"DeviceId": "00000000-0000-0000-0000-000000000000"},
+        )
+
+        scenes: list[SceneOverview] = []
+        if not data:
+            return scenes
+
+        for item in data:
+            try:
+                last_update_str = item.get("LastUpdateUtc", "")
+                last_update = (
+                    datetime.fromisoformat(last_update_str.replace("Z", "+00:00"))
+                    if last_update_str
+                    else datetime.now()
+                )
+
+                scenes.append(
+                    SceneOverview(
+                        scene_id=str(item.get("SceneId", "")),
+                        display_name=str(item.get("DisplayName", "")),
+                        description=item.get("Description"),
+                        priority=int(item.get("Priority", 1000)),
+                        enabled=bool(item.get("Enabled", False)),
+                        last_update=last_update,
+                        state=None,  # Not included in list response
+                    )
+                )
+            except (ValueError, TypeError) as e:
+                logger.warning(f"Failed to parse scene: {e}")
+                continue
+
+        return scenes
+
+    async def get_scene(self, scene_id: str) -> Scene:
+        """Get full scene configuration by ID.
+
+        Returns the complete scene including conditions and actions.
+
+        Args:
+            scene_id: UUID of the scene
+
+        Returns:
+            Scene object with full configuration
+
+        Raises:
+            HttpError: If scene not found or request fails
+        """
+        data = await self._session.request(
+            "Scene/GetSceneById",
+            {"SceneId": scene_id},
+        )
+
+        if not data:
+            raise HttpError(f"Scene {scene_id} not found")
+
+        last_update_str = data.get("LastUpdateUtc", "")
+        last_update = (
+            datetime.fromisoformat(last_update_str.replace("Z", "+00:00"))
+            if last_update_str
+            else datetime.now()
+        )
+
+        return Scene(
+            scene_id=str(data.get("SceneId", "")),
+            display_name=str(data.get("DisplayName", "")),
+            description=data.get("Description"),
+            priority=int(data.get("Priority", 1000)),
+            enabled=bool(data.get("Enabled", False)),
+            last_update=last_update,
+            condition_tree_data=data.get("ConditionTreeData", {}),
+            action_data=data.get("ActionDataForSerialization"),
+        )
+
+    async def get_scene_state(self, scene_id: str) -> SceneState:
+        """Get current execution state of a scene.
+
+        Returns whether conditions are met and if actions are running.
+
+        Args:
+            scene_id: UUID of the scene
+
+        Returns:
+            SceneState with condition and action status
+
+        Raises:
+            HttpError: If scene not found or request fails
+        """
+        data = await self._session.request(
+            "Scene/GetSceneOverviewById",
+            {"SceneId": scene_id},
+        )
+
+        if not data:
+            raise HttpError(f"Scene {scene_id} not found")
+
+        state_data = data.get("SceneState", {})
+        last_check_str = state_data.get("LastConditionCheckUtc", "")
+        last_check = (
+            datetime.fromisoformat(last_check_str.replace("Z", "+00:00"))
+            if last_check_str
+            else datetime.now()
+        )
+
+        return SceneState(
+            condition_is_true=bool(state_data.get("ConditionIsTrue", False)),
+            action_is_running=bool(state_data.get("ActionIsRunning", False)),
+            last_check=last_check,
+            execution_time_ms=int(state_data.get("ExecutionTimeMs", 0)),
+        )
+
+    async def execute_scene(self, scene_id: str) -> None:
+        """Execute a scene's actions immediately.
+
+        This triggers all actions defined in the scene regardless of
+        whether conditions are met. Use with caution.
+
+        Args:
+            scene_id: UUID of the scene to execute
+
+        Raises:
+            HttpError: If execution fails
+
+        Example:
+            ```python
+            # Trigger "Night Mode" scene
+            await client.execute_scene("f29e1596-5efb-4b5e-8674-5baf2b65a377")
+            ```
+        """
+        await self._session.request(
+            "Scene/ExecuteScene",
+            {"SceneId": scene_id},
+        )
+        logger.info(f"Executed scene {scene_id}")

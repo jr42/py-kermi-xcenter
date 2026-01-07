@@ -1,7 +1,8 @@
 """Data models for HTTP API responses."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
+from typing import Any
 
 
 @dataclass
@@ -80,3 +81,75 @@ class DatapointConfig:
     min_value: float | None = None
     max_value: float | None = None
     address: str | None = None
+
+
+@dataclass
+class SceneState:
+    """Current execution state of a scene.
+
+    Attributes:
+        condition_is_true: Whether scene conditions are currently met
+        action_is_running: Whether scene actions are currently executing
+        last_check: When conditions were last evaluated
+        execution_time_ms: Last action execution time in milliseconds
+    """
+
+    condition_is_true: bool
+    action_is_running: bool
+    last_check: datetime
+    execution_time_ms: int
+
+
+@dataclass
+class SceneOverview:
+    """Scene metadata without full condition/action details.
+
+    Use this for listing scenes or monitoring status. For full
+    scene configuration, use Scene instead.
+
+    Attributes:
+        scene_id: UUID identifying the scene
+        display_name: Human-readable name
+        description: Optional description
+        priority: Lower numbers = higher priority
+        enabled: Whether the scene is active
+        last_update: When the scene was last modified
+        state: Current execution state (if available)
+    """
+
+    scene_id: str
+    display_name: str
+    description: str | None
+    priority: int
+    enabled: bool
+    last_update: datetime
+    state: SceneState | None = None
+
+
+@dataclass
+class Scene:
+    """Full scene with conditions and actions.
+
+    Scenes are automation rules that execute actions when conditions are met.
+    The condition_tree_data and action_data are kept as raw dictionaries
+    since their structure is complex and varies by condition/action type.
+
+    Attributes:
+        scene_id: UUID identifying the scene
+        display_name: Human-readable name
+        description: Optional description
+        priority: Lower numbers = higher priority
+        enabled: Whether the scene is active
+        last_update: When the scene was last modified
+        condition_tree_data: Tree of conditions (AND/OR logic) as raw dict
+        action_data: List of actions to execute as raw dicts
+    """
+
+    scene_id: str
+    display_name: str
+    description: str | None
+    priority: int
+    enabled: bool
+    last_update: datetime
+    condition_tree_data: dict[str, Any] = field(default_factory=dict)
+    action_data: list[dict[str, Any]] | None = None
