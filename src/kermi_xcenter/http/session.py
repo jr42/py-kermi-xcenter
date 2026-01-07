@@ -122,7 +122,9 @@ class HttpSession:
                 pass  # Ignore logout errors
             self._authenticated = False
 
-    async def request(self, endpoint: str, data: dict[str, Any] | None = None) -> Any:
+    async def request(
+        self, endpoint: str, data: dict[str, Any] | None = None, *, _retry_count: int = 0
+    ) -> Any:
         """Make an authenticated API request.
 
         Automatically handles session expiry by re-authenticating.
@@ -130,14 +132,23 @@ class HttpSession:
         Args:
             endpoint: API endpoint path (e.g., "Menu/GetBundlesByCategory")
             data: JSON body for the request (default: empty dict)
+            _retry_count: Internal retry counter (do not set manually)
 
         Returns:
             The ResponseData from the API response
 
         Raises:
             HttpError: If the request fails
-            SessionExpiredError: If session expired and re-auth failed
+            AuthenticationError: If re-authentication fails repeatedly
         """
+        max_retries = 2
+
+        if _retry_count > max_retries:
+            raise AuthenticationError(
+                f"Authentication failed after {max_retries} attempts - "
+                "check password or device authentication settings"
+            )
+
         if data is None:
             data = {}
 
@@ -155,17 +166,19 @@ class HttpSession:
                 # Check for session expiry (HTML response)
                 content_type = response.headers.get("Content-Type", "")
                 if "text/html" in content_type:
-                    logger.debug("Session expired, re-authenticating")
+                    logger.debug(
+                        "Session expired, re-authenticating (attempt %d)", _retry_count + 1
+                    )
                     self._authenticated = False
                     await self.login()
-                    # Retry the request
-                    return await self.request(endpoint, data)
+                    # Retry the request with incremented counter
+                    return await self.request(endpoint, data, _retry_count=_retry_count + 1)
 
                 if response.status == 401:
-                    logger.debug("Got 401, re-authenticating")
+                    logger.debug("Got 401, re-authenticating (attempt %d)", _retry_count + 1)
                     self._authenticated = False
                     await self.login()
-                    return await self.request(endpoint, data)
+                    return await self.request(endpoint, data, _retry_count=_retry_count + 1)
 
                 if response.status != 200:
                     raise HttpError(f"Request failed with status {response.status}")

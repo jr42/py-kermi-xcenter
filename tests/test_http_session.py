@@ -222,6 +222,59 @@ class TestHttpSessionRequest:
         with pytest.raises(HttpError, match="Request failed with status 500"):
             await session.request("Some/Endpoint", {})
 
+    @pytest.mark.asyncio
+    async def test_request_max_retries_on_401(self):
+        """Test that request raises AuthenticationError after max retries on 401.
+
+        This prevents infinite recursion when authentication keeps failing.
+        Regression test for issue #15.
+        """
+        # Use no password so login() succeeds without making HTTP call
+        session = HttpSession(host="192.168.1.100")
+        session._authenticated = True
+
+        # Mock 401 response that triggers re-auth
+        mock_response = AsyncMock()
+        mock_response.status = 401
+        mock_response.headers = {"Content-Type": "application/json"}
+
+        mock_aiohttp_session = MagicMock()
+        context_manager = AsyncMock()
+        context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_aiohttp_session.post = MagicMock(return_value=context_manager)
+
+        session._session = mock_aiohttp_session
+
+        with pytest.raises(AuthenticationError, match="Authentication failed after"):
+            await session.request("Some/Endpoint", {})
+
+    @pytest.mark.asyncio
+    async def test_request_max_retries_on_html_response(self):
+        """Test that request raises AuthenticationError after max retries on HTML response.
+
+        This prevents infinite recursion when session keeps expiring.
+        Regression test for issue #15.
+        """
+        session = HttpSession(host="192.168.1.100")
+        session._authenticated = True
+
+        # Mock HTML response (session expired)
+        mock_response = AsyncMock()
+        mock_response.status = 200
+        mock_response.headers = {"Content-Type": "text/html"}
+
+        mock_aiohttp_session = MagicMock()
+        context_manager = AsyncMock()
+        context_manager.__aenter__ = AsyncMock(return_value=mock_response)
+        context_manager.__aexit__ = AsyncMock(return_value=None)
+        mock_aiohttp_session.post = MagicMock(return_value=context_manager)
+
+        session._session = mock_aiohttp_session
+
+        with pytest.raises(AuthenticationError, match="Authentication failed after"):
+            await session.request("Some/Endpoint", {})
+
 
 class TestHttpSessionClose:
     """Test HTTP session close functionality."""
